@@ -1,0 +1,1369 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<title>Espace BourseClix</title>
+<meta name="theme-color" content="#071b2d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BourseClix">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  color-scheme: light;
+  /* surfaces */
+  --canvas:#f4f8fa; --surface:#ffffff; --surface-2:#eef3f6;
+  --navy-900:#071b2d; --navy-700:#10283c; --navy-600:#1a3650;
+  /* text */
+  --ink:#10283c; --muted:#67798c; --faint:#a8b8c4;
+  --line:#e5edf1; --line-strong:#d3e0e6;
+  /* brand + status (categorical: actions / obligations / opcvm) */
+  --c-actions:#0fa47c; --c-obligations:#3b82c4; --c-opcvm:#c9862a;
+  --gain:#0fa47c; --loss:#d9483f; --warn:#c9862a;
+  --gain-tint:#e7f8f2; --loss-tint:#fbeceb; --warn-tint:#fbf1e2;
+  --actions-tint:#e7f8f2; --obligations-tint:#e9f2fa; --opcvm-tint:#fbf1e2;
+  --focus:#3b82c4;
+  --shadow: 0 1px 2px rgba(7,27,45,.04), 0 8px 24px rgba(7,27,45,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --canvas:#0a1a26; --surface:#122736; --surface-2:#0e2130;
+    --navy-900:#050f18; --navy-700:#0e2130; --navy-600:#173247;
+    --ink:#e9f1f4; --muted:#93a8b8; --faint:#5c7284;
+    --line:#1f3b4d; --line-strong:#2a4d63;
+    --c-actions:#1fae82; --c-obligations:#4a90c9; --c-opcvm:#bb8022;
+    --gain:#1fae82; --loss:#e15a4f; --warn:#bb8022;
+    --gain-tint:#0f2b24; --loss-tint:#33201d; --warn-tint:#33270f;
+    --actions-tint:#0f2b24; --obligations-tint:#122234; --opcvm-tint:#33270f;
+    --focus:#6ab4e8;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --canvas:#0a1a26; --surface:#122736; --surface-2:#0e2130;
+  --navy-900:#050f18; --navy-700:#0e2130; --navy-600:#173247;
+  --ink:#e9f1f4; --muted:#93a8b8; --faint:#5c7284;
+  --line:#1f3b4d; --line-strong:#2a4d63;
+  --c-actions:#1fae82; --c-obligations:#4a90c9; --c-opcvm:#bb8022;
+  --gain:#1fae82; --loss:#e15a4f; --warn:#bb8022;
+  --gain-tint:#0f2b24; --loss-tint:#33201d; --warn-tint:#33270f;
+  --actions-tint:#0f2b24; --obligations-tint:#122234; --opcvm-tint:#33270f;
+  --focus:#6ab4e8;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+}
+
+/* ============ RESET / BASE ============ */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--canvas);color:var(--ink);
+  font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:inherit}
+button{font-family:inherit}
+h1,h2,h3{font-family:Manrope,Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.02em;text-wrap:balance;margin:0}
+.num{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+::selection{background:var(--c-actions);color:#fff}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* ============ SHELL ============ */
+.shell{height:100%;display:flex}
+
+/* ---- sidebar ---- */
+.sidebar{
+  width:236px;flex:none;background:var(--navy-900);color:#cfe0e8;
+  display:flex;flex-direction:column;
+  padding:18px 14px calc(14px + env(safe-area-inset-bottom,0px));
+  transition:transform .22s ease;
+}
+.brand{display:flex;align-items:center;gap:9px;padding:6px 8px 22px}
+.brand-mark{width:30px;height:30px;border-radius:9px;background:var(--c-actions);display:grid;place-items:center;color:#062c22;font-weight:800;font-family:Manrope,sans-serif;font-size:14px;flex:none}
+.brand-name{font-family:Manrope,sans-serif;font-weight:800;font-size:16px;letter-spacing:-.02em;color:#fff}
+.brand-name span{color:var(--c-actions)}
+.nav{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
+.nav-group-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#4f6a7d;padding:16px 10px 6px}
+.nav-btn{
+  display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;border:none;background:transparent;
+  color:#a9c1cd;font-size:13.5px;font-weight:600;cursor:pointer;text-align:left;width:100%;
+  border-left:2.5px solid transparent;
+}
+.nav-btn svg{flex:none;opacity:.85}
+.ic{display:inline-flex;flex:none;vertical-align:-3px}
+.nav-btn:hover{background:#0f2637;color:#fff}
+.nav-btn.active{background:#0f2637;color:#fff;border-left-color:var(--c-actions)}
+.nav-btn .badge-count{margin-left:auto;background:var(--loss);color:#fff;font-size:10px;font-weight:700;border-radius:999px;padding:1px 6px}
+.sidebar-foot{border-top:1px solid #16334a;padding-top:12px;margin-top:8px;font-size:11px;color:#5c7c8f;line-height:1.5}
+
+/* ---- main ---- */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{
+  height:64px;flex:none;display:flex;align-items:center;gap:16px;
+  padding:0 26px;border-bottom:1px solid var(--line);background:var(--surface);
+}
+.hamburger{display:none;background:none;border:1px solid var(--line);border-radius:8px;width:34px;height:34px;cursor:pointer;color:var(--ink)}
+.page-title{font-size:19px;font-weight:800}
+.page-sub{color:var(--muted);font-size:12.5px;margin-top:1px}
+.topbar-spacer{flex:1}
+.icon-btn{position:relative;background:var(--surface-2);border:1px solid var(--line);width:36px;height:36px;border-radius:9px;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.icon-btn .dot{position:absolute;top:-3px;right:-3px;background:var(--loss);color:#fff;font-size:9.5px;font-weight:800;border-radius:999px;min-width:15px;height:15px;display:grid;place-items:center;padding:0 3px;border:2px solid var(--surface)}
+.avatar-block{display:flex;align-items:center;gap:9px;padding-left:10px;border-left:1px solid var(--line)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--navy-700);color:#fff;display:grid;place-items:center;font-family:Manrope,sans-serif;font-weight:800;font-size:13px}
+.avatar-name{font-size:12.5px;font-weight:700;line-height:1.3}
+.avatar-plan{font-size:10.5px;color:var(--muted)}
+
+.content{flex:1;overflow-y:auto;padding:24px 26px 60px}
+.demo-banner{
+  display:flex;align-items:center;gap:9px;background:var(--warn-tint);border:1px solid var(--warn);color:var(--ink);
+  font-size:12.5px;padding:9px 13px;border-radius:10px;margin-bottom:20px;
+}
+.demo-banner b{color:var(--warn)}
+.view{max-width:1180px}
+
+/* ============ COMPONENTS ============ */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid-2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+
+/* ---- dashboard header: mini ticker, greeting, hero banner ---- */
+.mini-ticker{display:flex;align-items:center;gap:12px;background:var(--navy-900);border-radius:11px;padding:9px 9px 9px 4px;margin-bottom:16px;overflow:hidden}
+.mt-label{flex:none;background:var(--c-actions);color:#062c22;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:6px 11px;border-radius:7px}
+.mt-track-wrap{flex:1;min-width:0;overflow:hidden;mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
+.mt-track{display:flex;gap:22px;white-space:nowrap;width:max-content;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:#d9edf0;animation:mtScroll 30s linear infinite}
+.mt-track b{color:#fff;margin-right:5px}
+.mt-track .up{color:#54d7ae}.mt-track .down{color:#f0a49c}
+@keyframes mtScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion: reduce){.mt-track{animation:none}}
+
+.greet-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.greet-date{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+.greet-hi{font-size:22px}
+.greet-status{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:7px 13px}
+.greet-status .dot{width:7px;height:7px;border-radius:50%;background:var(--warn)}
+
+.hero-banner{
+  background:radial-gradient(circle at 85% 15%,#173f57 0,#0c2a3d 42%,var(--navy-900) 85%);color:#fff;border-radius:16px;
+  padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;
+}
+.hero-banner h2{font-size:19px;letter-spacing:-.02em;margin-bottom:5px}
+.hero-banner p{color:#b8d0d8;font-size:12.5px;margin:0}
+.hero-cta{background:var(--c-actions);color:#062c22;border:none;font-weight:800;flex:none;padding:11px 16px}
+
+.wl-row{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)}
+.wl-row:last-child{border-bottom:none}
+.wl-badge{width:30px;height:30px;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;font-family:Manrope,sans-serif;font-weight:800;font-size:12px;flex:none;color:var(--navy-700)}
+.wl-name{font-weight:700;font-size:12.5px}
+.wl-sub{color:var(--muted);font-size:11px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:19px}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px}
+.card-head h2{font-size:14.5px}
+.card-head .hint{font-size:11.5px;color:var(--muted)}
+
+.kpi small{display:block;color:var(--muted);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px}
+.kpi strong{display:block;font-size:23px;font-weight:700}
+.kpi .delta{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;margin-top:7px;padding:2px 7px;border-radius:999px}
+.delta.up{color:var(--gain);background:var(--gain-tint)}
+.delta.down{color:var(--loss);background:var(--loss-tint)}
+.delta svg{width:11px;height:11px}
+
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid transparent}
+.btn-primary{background:var(--c-actions);color:#062c22}
+.btn-primary:hover{filter:brightness(1.05)}
+.btn-ghost{background:var(--surface-2);border-color:var(--line);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--line-strong)}
+.btn-sm{padding:6px 10px;font-size:11.5px}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:3px}
+.seg button{border:none;background:none;padding:6px 11px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;color:var(--muted)}
+.seg button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:0 10px 10px;border-bottom:1px solid var(--line)}
+td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.table-wrap{overflow-x:auto}
+.t-right{text-align:right}
+.name-cell{display:flex;align-items:center;gap:10px}
+.ticker-chip{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 6px;flex:none}
+.name-sub{color:var(--muted);font-size:11.5px}
+.class-tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px}
+.class-actions{background:var(--actions-tint);color:var(--c-actions)}
+.class-obligations{background:var(--obligations-tint);color:var(--c-obligations)}
+.class-opcvm{background:var(--opcvm-tint);color:var(--c-opcvm)}
+.pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;display:inline-block}
+.pill-gain{background:var(--gain-tint);color:var(--gain)}
+.pill-loss{background:var(--loss-tint);color:var(--loss)}
+.pill-warn{background:var(--warn-tint);color:var(--warn)}
+.gainer{color:var(--gain);font-weight:700}
+.loser{color:var(--loss);font-weight:700}
+.arrow-inline{width:10px;height:10px;vertical-align:-1px;margin-right:1px}
+.star-btn{background:none;border:none;cursor:pointer;color:var(--faint);padding:2px}
+.star-btn.on{color:var(--c-opcvm)}
+.icon-cell{width:30px}
+
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11.5px;font-weight:700;color:var(--muted)}
+.field input,.field select{padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink);font-family:inherit}
+.form-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end}
+.inline-panel{border:1px dashed var(--line-strong);border-radius:12px;padding:16px;margin-bottom:16px;background:var(--surface-2)}
+
+.switch{position:relative;width:36px;height:20px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch .track{position:absolute;inset:0;background:var(--line-strong);border-radius:999px;cursor:pointer;transition:background .15s}
+.switch .track:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.switch input:checked + .track{background:var(--c-actions)}
+.switch input:checked + .track:before{transform:translateX(16px)}
+
+.list-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.list-row:last-child{border-bottom:none}
+.list-icon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none}
+.news-card{border:1px solid var(--line);border-radius:12px;padding:15px;display:flex;flex-direction:column;gap:8px}
+.news-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.source-badge{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-weight:700;color:var(--ink)}
+.news-title{font-size:13.5px;font-weight:700;line-height:1.4}
+.news-excerpt{font-size:12.5px;color:var(--muted);line-height:1.6}
+.tick-tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;background:var(--gain-tint);color:var(--gain);border-radius:6px;padding:1px 6px}
+
+/* charts */
+.chart-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);font-weight:600}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.chart-tooltip{
+  position:fixed;pointer-events:none;background:var(--navy-900);color:#eaf3f6;border-radius:8px;padding:8px 11px;
+  font-size:11.5px;line-height:1.5;box-shadow:var(--shadow);z-index:40;opacity:0;transition:opacity .1s;white-space:nowrap;
+}
+.chart-tooltip.show{opacity:1}
+.chart-tooltip .tt-row{display:flex;gap:8px;justify-content:space-between}
+.donut-wrap{display:flex;align-items:center;gap:22px}
+.donut-center-label small{display:block;color:var(--muted);font-size:10.5px}
+.donut-center-label strong{font-size:15px}
+
+.faq-note{color:var(--muted);font-size:12px}
+.empty-hint{color:var(--muted);font-size:12.5px;padding:14px 4px}
+
+/* overlay for mobile sidebar / sheet */
+.overlay{position:fixed;inset:0;background:rgba(5,15,24,.5);z-index:20;opacity:0;pointer-events:none;transition:opacity .18s}
+.overlay.show{opacity:1;pointer-events:auto}
+
+/* ---- mobile bottom tab bar (app shell) ---- */
+.bottom-tabs{
+  display:none;position:fixed;left:0;right:0;bottom:0;z-index:35;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
+}
+.tab-row{display:grid;grid-template-columns:repeat(5,1fr)}
+.bottom-tab{
+  position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);
+  font-size:10px;font-weight:700;padding:7px 2px;border-radius:10px;min-height:48px;justify-content:center;
+}
+.bottom-tab svg{opacity:.8}
+.bottom-tab.active{color:var(--c-actions)}
+.bottom-tab.active svg{opacity:1}
+.bottom-tab .dot-mark{position:absolute;top:5px;right:calc(50% - 15px);width:7px;height:7px;border-radius:50%;background:var(--loss);border:1.5px solid var(--surface)}
+
+/* ---- "Plus" bottom sheet ---- */
+.bottom-sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:36;background:var(--surface);border-radius:16px 16px 0 0;
+  padding:8px 8px calc(14px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform .22s ease;
+  box-shadow:0 -12px 30px rgba(7,27,45,.18);
+}
+.bottom-sheet.open{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--line-strong);border-radius:999px;margin:6px auto 10px}
+.sheet-item{display:flex;align-items:center;gap:13px;width:100%;background:none;border:none;padding:13px 14px;border-radius:11px;font-size:14px;font-weight:700;color:var(--ink);text-align:left}
+.sheet-item:active{background:var(--surface-2)}
+.sheet-item svg{color:var(--muted)}
+
+/* ---- responsive data cards (mobile table replacement) ---- */
+.mrow-list{display:none;flex-direction:column;gap:10px}
+.mrow{border:1px solid var(--line);border-radius:12px;padding:12px 13px}
+.mrow-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.mrow-id{display:flex;align-items:center;gap:9px;min-width:0}
+.mrow-name{font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mrow-grid div{display:flex;flex-direction:column;gap:2px}
+.mrow-grid small{color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.mrow-grid strong{font-size:12.5px}
+.mrow-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:12px}
+
+@media (max-width:940px){
+  .grid-4{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr}
+  .grid-2{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr 1fr}
+}
+@media (max-width:780px){
+  .sidebar{display:none}
+  .hamburger{display:none}
+  .avatar-name,.avatar-plan{display:none}
+  .content{padding:16px 14px calc(78px + env(safe-area-inset-bottom,0px))}
+  .bottom-tabs{display:block}
+  .table-wrap:has(+ .mrow-list){display:none}
+  .mrow-list{display:flex}
+  .card-head{flex-wrap:wrap;gap:10px}
+  .btn,.icon-btn,.nav-btn,.seg button{min-height:38px}
+}
+@media (max-width:560px){
+  .grid-4{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr}
+  .topbar{padding:0 14px}
+  .page-sub{display:none}
+  .form-row{grid-template-columns:1fr}
+  .donut-wrap{flex-direction:column;align-items:flex-start}
+  .hero-banner{padding:18px}
+  .greet-hi{font-size:19px}
+}
+
+/* ============ PLAN / ESSAI / ADMIN ============ */
+.plan-badge{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;display:inline-block}
+.plan-badge.admin{background:#3a2f10;color:#e8b84b}
+.plan-badge.trial{background:var(--warn-tint);color:var(--warn)}
+.plan-badge.trial.low{background:var(--loss-tint);color:var(--loss)}
+
+.trial-banner{display:flex;align-items:center;gap:14px;background:var(--opcvm-tint);border:1px solid var(--warn);border-radius:12px;padding:12px 16px;margin-bottom:16px;flex-wrap:wrap}
+.trial-banner .tb-icon{width:34px;height:34px;border-radius:9px;background:var(--warn);color:#fff;display:grid;place-items:center;flex:none}
+.trial-banner .tb-text{flex:1;min-width:220px;font-size:12.5px;color:var(--ink)}
+.trial-banner .tb-text b{color:var(--warn)}
+.trial-banner .tb-bar{width:100%;max-width:320px;height:5px;background:var(--surface);border-radius:999px;overflow:hidden;margin-top:7px}
+.trial-banner .tb-bar-fill{height:100%;background:var(--warn);border-radius:999px}
+
+/* ---- ad slots (bandeau, sidebar, mobile) ---- */
+.ad-slot{position:relative}
+.ad-banner{display:flex;align-items:center;gap:14px;border:1.5px dashed var(--line-strong);background:var(--surface-2);border-radius:12px;padding:14px 16px;margin-bottom:16px;min-height:56px}
+.ad-banner .ad-tag{position:absolute;top:8px;left:12px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.ad-banner .ad-visual{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--c-obligations),var(--c-actions));flex:none;display:grid;place-items:center;color:#fff;font-family:Manrope,sans-serif;font-weight:800;font-size:12px;margin-top:6px}
+.ad-banner .ad-body{flex:1;min-width:0;margin-top:6px}
+.ad-banner .ad-title{font-weight:700;font-size:13px;margin-bottom:2px}
+.ad-banner .ad-sub{color:var(--muted);font-size:11.5px}
+.ad-banner .ad-cta{flex:none;margin-top:6px}
+
+.ad-sidebar{position:relative;border:1px dashed #1c3a4f;border-radius:10px;margin:10px 0;padding:16px 12px 12px}
+.ad-sidebar .ad-tag{position:absolute;top:8px;left:10px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6f8a9c;background:#0f2637;border:1px solid #1c3a4f;border-radius:5px;padding:1px 6px}
+.ad-sidebar .ad-sb-title{font-size:12px;font-weight:700;color:#fff;margin:6px 0 3px}
+.ad-sidebar .ad-sb-sub{font-size:10.5px;color:#8fa7b6;line-height:1.5;margin-bottom:10px}
+.ad-sidebar .ad-sb-cta{display:block;text-align:center;background:var(--c-actions);color:#062c22;border:none;border-radius:7px;padding:7px;font-size:11px;font-weight:800;cursor:pointer;width:100%;font-family:inherit}
+
+.ad-mobile-bar{display:none;position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom,0px));z-index:34;background:var(--surface);border-top:1px dashed var(--line-strong);padding:8px 14px;align-items:center;gap:10px}
+.ad-mobile-bar .ad-tag{font-size:9px;font-weight:800;text-transform:uppercase;color:var(--faint);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:2px 6px;flex:none}
+@media (max-width:780px){ .ad-mobile-bar{display:flex} }
+
+/* ---- paywall (essai terminé) ---- */
+.paywall-overlay{position:fixed;inset:0;z-index:60;background:rgba(7,27,45,.78);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px}
+.paywall-card{background:var(--surface);border-radius:18px;max-width:440px;width:100%;padding:32px 28px;text-align:center;box-shadow:var(--shadow)}
+.paywall-card .pw-icon{width:52px;height:52px;border-radius:14px;background:var(--warn-tint);color:var(--warn);display:grid;place-items:center;margin:0 auto 16px}
+.paywall-card h2{font-size:19px;margin-bottom:8px}
+.paywall-card p{color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:20px}
+.paywall-plans{display:flex;gap:10px;margin-bottom:16px}
+.paywall-plans .btn{flex:1;justify-content:center}
+.paywall-demo{font-size:11px;color:var(--faint);border-top:1px solid var(--line);padding-top:14px;margin-top:4px}
+.paywall-demo button{background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:11px;font-family:inherit}
+</style>
+</head>
+<body>
+
+
+<div class="overlay" id="overlay"></div>
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark">BC</div><div class="brand-name">Bourse<span>Clix</span></div></div>
+    <nav class="nav" id="nav">
+      <div class="nav-group-label">Suivi</div>
+      <button class="nav-btn active" data-view="dashboard"><span class="ic" data-icon="grid"></span><span>Tableau de bord</span></button>
+      <button class="nav-btn" data-view="portfolio"><span class="ic" data-icon="case"></span><span>Portefeuille</span></button>
+      <button class="nav-btn" data-view="market"><span class="ic" data-icon="trend"></span><span>Marché BRVM</span></button>
+      <button class="nav-btn" data-view="dividends"><span class="ic" data-icon="coin"></span><span>Dividendes</span></button>
+      <div class="nav-group-label">Pilotage</div>
+      <button class="nav-btn" data-view="alerts"><span class="ic" data-icon="bell"></span><span>Alertes</span><span class="badge-count" id="navAlertCount"></span></button>
+      <button class="nav-btn" data-view="news"><span class="ic" data-icon="news"></span><span>Actualités</span></button>
+      <button class="nav-btn" data-view="reports"><span class="ic" data-icon="file"></span><span>Rapports</span></button>
+      <div class="nav-group-label">Compte</div>
+      <button class="nav-btn" data-view="settings"><span class="ic" data-icon="gear"></span><span>Paramètres</span></button>
+    </nav>
+    <div class="ad-sidebar ad-slot" id="sidebarAd" hidden></div>
+    <div class="sidebar-foot">Séance BRVM · cours réels du 18/09/2026<br>Abidjan, Côte d'Ivoire</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <div class="page-title" id="pageTitle">Tableau de bord</div>
+        <div class="page-sub" id="pageSub">Vue d'ensemble de ton portefeuille BRVM</div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <button class="icon-btn" id="notifBtn" aria-label="Notifications">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8a5 5 0 0 1 10 0c0 4 1.5 5 1.5 5h-13S5 12 5 8Z"/><path d="M8.2 16a1.8 1.8 0 0 0 3.6 0"/></svg>
+        <span class="dot" id="notifCount">2</span>
+      </button>
+      <div class="avatar-block">
+        <div class="avatar" id="avatarInitial">L</div>
+        <div><div class="avatar-name" id="avatarName">Louis</div><div class="avatar-plan" id="avatarPlan">Plan Annuel</div></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="view" id="view-dashboard">
+        <div class="trial-banner" id="trialBanner" hidden>
+          <div class="tb-icon"><span class="ic" data-icon="info"></span></div>
+          <div class="tb-text">
+            <div id="trialBannerText"></div>
+            <div class="tb-bar"><div class="tb-bar-fill" id="trialBarFill" style="width:20%"></div></div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="trialUpgradeBtn">Passer Premium</button>
+        </div>
+
+        <div class="mini-ticker">
+          <span class="mt-label">Cours BRVM</span>
+          <div class="mt-track-wrap"><div class="mt-track" id="miniTicker"></div></div>
+        </div>
+
+        <div class="greet-row">
+          <div><div class="greet-date" id="greetDate"></div><h1 class="greet-hi">Bonjour Louis <span aria-hidden="true">👋</span></h1></div>
+          <div class="greet-status"><span class="dot"></span>Marché à surveiller</div>
+        </div>
+
+        <div class="hero-banner">
+          <div>
+            <h2>Ton cockpit BRVM, au même endroit.</h2>
+            <p>Portefeuille · tendances · dividendes · actualités utiles</p>
+          </div>
+          <button class="btn hero-cta" id="heroCta">Voir mon portefeuille <span aria-hidden="true">→</span></button>
+        </div>
+
+        <div class="demo-banner"><span class="ic" data-icon="info"></span><span><b>Données réelles, hors flux en direct</b> — portefeuille, graphique de performance et les 47 valeurs du marché BRVM basés sur les cours réels au 18 sept. 2026 (source : BRVM.org) ; seuls les dividendes et les actualités restent des exemples de démonstration.</span></div>
+
+        <div class="ad-slot ad-banner" id="adBannerDash" hidden></div>
+
+        <div class="grid-4" id="kpiRow" style="margin-bottom:14px"></div>
+
+        <div class="grid-2" style="margin-bottom:14px">
+          <div class="card">
+            <div class="card-head">
+              <div><h2>Performance du portefeuille</h2><div class="hint">Indexée base 100 · données réelles BRVM</div></div>
+              <div class="seg" id="rangeSeg">
+                <button data-range="1a" class="active">1 an</button>
+                <button data-range="2a">2 ans</button>
+              </div>
+            </div>
+            <svg id="perfChart" viewBox="0 0 560 220" style="width:100%;height:220px;overflow:visible"></svg>
+            <div class="chart-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:var(--c-actions)"></span>Mon portefeuille</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--c-obligations)"></span>BRVM Composite (indice)</span>
+            </div>
+            <div id="perfSourceNote" style="margin-top:8px;line-height:1.5;font-size:11px;color:var(--muted)"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h2>Répartition par classe d'actif</h2><div class="hint">Valeur de marché</div></div></div>
+            <div class="donut-wrap">
+              <svg id="donutChart" viewBox="0 0 140 140" width="140" height="140"></svg>
+              <div class="chart-legend" style="flex-direction:column;gap:10px" id="donutLegend"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-head"><h2>Mouvements du jour</h2><div class="hint">Positions détenues</div></div>
+            <div id="topMovers"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Ma watchlist</h2><button class="btn btn-ghost btn-sm" id="wlAddBtn">+ Ajouter</button></div>
+            <div id="watchlistCard"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>À surveiller</h2><div class="hint">Alertes &amp; actualités</div></div>
+            <div id="watchFeed"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-portfolio" hidden>
+        <div class="ad-slot ad-banner" id="adBannerPortfolio" hidden></div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-head">
+            <div><h2>Mon portefeuille</h2><div class="hint" id="portfolioSummary"></div></div>
+            <button class="btn btn-primary btn-sm" id="togglePosForm"><span class="ic" data-icon="plus"></span> Ajouter une position</button>
+          </div>
+          <div class="inline-panel" id="posForm" hidden>
+            <div class="form-row">
+              <div class="field"><label>Valeur</label><input id="pf-name" placeholder="Ex. Sonatel"></div>
+              <div class="field"><label>Ticker</label><input id="pf-ticker" placeholder="Ex. SNTS" style="text-transform:uppercase"></div>
+              <div class="field"><label>Classe</label><select id="pf-class"><option>Actions</option><option>Obligations</option><option>OPCVM</option></select></div>
+              <div class="field"><label>Quantité</label><input id="pf-qty" type="number" min="0" placeholder="0"></div>
+            </div>
+            <div class="form-row" style="margin-top:10px">
+              <div class="field"><label>PRU (FCFA)</label><input id="pf-pru" type="number" min="0" placeholder="0"></div>
+              <div class="field"><label>Cours actuel (FCFA)</label><input id="pf-cours" type="number" min="0" placeholder="0"></div>
+              <div style="grid-column:span 2;display:flex;gap:8px">
+                <button class="btn btn-primary" id="savePos">Enregistrer</button>
+                <button class="btn btn-ghost" id="cancelPos">Annuler</button>
+              </div>
+            </div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Valeur</th><th>Classe</th><th class="t-right">Qté</th><th class="t-right">Réservations</th><th class="t-right">PRU</th><th class="t-right">Cours</th><th class="t-right">Valeur marché</th><th class="t-right">+/- value</th><th class="t-right">Poids</th></tr></thead>
+            <tbody id="portfolioBody"></tbody>
+          </table></div>
+          <div class="mrow-list" id="portfolioCards"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Liquidités du compte</h2><div class="hint">Espèces disponibles, hors valeur des titres</div></div>
+            <button class="btn btn-ghost btn-sm" id="toggleCashForm">Modifier</button>
+          </div>
+          <div class="inline-panel" id="cashForm" hidden>
+            <div class="form-row" style="grid-template-columns:1fr 1fr auto">
+              <div class="field"><label>Liquidité réservée (FCFA)</label><input id="cash-reserved" type="number" min="0" placeholder="0"></div>
+              <div class="field"><label>Total liquidité (FCFA)</label><input id="cash-total" type="number" min="0" placeholder="0"></div>
+              <div style="display:flex;align-items:end;gap:8px">
+                <button class="btn btn-primary" id="saveCash">Enregistrer</button>
+                <button class="btn btn-ghost" id="cancelCash">Annuler</button>
+              </div>
+            </div>
+          </div>
+          <div id="cashSummary"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-market" hidden>
+        <div class="ad-slot ad-banner" id="adBannerMarket" hidden></div>
+        <div class="card">
+          <div class="card-head"><div><h2>Cours BRVM — Actions</h2><div class="hint">Les 47 valeurs cotées · cours réels au 18 sept. 2026</div></div>
+            <input id="marketSearch" placeholder="Rechercher une valeur…" style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;width:220px">
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th class="icon-cell"></th><th>Valeur</th><th class="t-right">Cours</th><th class="t-right">Var. jour</th><th class="t-right">Volume</th></tr></thead>
+            <tbody id="marketBody"></tbody>
+          </table></div>
+          <div class="mrow-list" id="marketCards"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-dividends" hidden>
+        <div class="ad-slot ad-banner" id="adBannerDividends" hidden></div>
+        <div class="grid-4" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:14px" id="divKpis"></div>
+        <div class="card">
+          <div class="card-head"><h2>Calendrier des dividendes</h2><div class="hint">Sociétés suivies</div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Société</th><th class="t-right">Montant / action</th><th>Date ex-dividende</th><th>Date de paiement</th><th>Statut</th></tr></thead>
+            <tbody id="dividendsBody"></tbody>
+          </table></div>
+          <div class="mrow-list" id="dividendsCards"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-alerts" hidden>
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Alertes</h2><div class="hint">Prix cibles, variations, dividendes, échéances</div></div>
+            <button class="btn btn-primary btn-sm" id="toggleAlertForm"><span class="ic" data-icon="plus"></span> Nouvelle alerte</button>
+          </div>
+          <div class="inline-panel" id="alertForm" hidden>
+            <div class="form-row">
+              <div class="field"><label>Valeur</label><input id="al-name" placeholder="Ex. SNTS"></div>
+              <div class="field"><label>Type</label><select id="al-type"><option>Prix cible atteint</option><option>Variation quotidienne</option><option>Dividende annoncé</option><option>Échéance obligataire</option></select></div>
+              <div class="field"><label>Condition</label><input id="al-cond" placeholder="Ex. ≥ 16 000 FCFA"></div>
+              <div style="display:flex;align-items:end;gap:8px">
+                <button class="btn btn-primary" id="saveAlert">Créer</button>
+                <button class="btn btn-ghost" id="cancelAlert">Annuler</button>
+              </div>
+            </div>
+          </div>
+          <div id="alertsList"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-news" hidden>
+        <div class="ad-slot ad-banner" id="adBannerNews" hidden></div>
+        <div class="card">
+          <div class="card-head"><h2>Actualités BRVM</h2><div class="hint">Sources vérifiées, non générées automatiquement</div></div>
+          <div id="newsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-reports" hidden>
+        <div class="ad-slot ad-banner" id="adBannerReports" hidden></div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-head">
+            <div><h2>Résumé de performance</h2><div class="hint">Par classe d'actif</div></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" id="exportCsv"><span class="ic" data-icon="file"></span> Export CSV</button>
+              <button class="btn btn-ghost btn-sm" id="exportPdf"><span class="ic" data-icon="file"></span> Export PDF</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Classe</th><th class="t-right">Valeur</th><th class="t-right">Poids</th><th class="t-right">Performance</th></tr></thead>
+            <tbody id="reportsBody"></tbody>
+          </table></div>
+          <p class="faq-note" id="exportNote" style="margin-top:12px"></p>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Résumé hebdomadaire</h2><div class="hint">Généré chaque lundi</div></div>
+          <p style="color:var(--muted);font-size:13px;line-height:1.7">Sur les 12 derniers mois, ton portefeuille reste porté par <b style="color:var(--ink)">Ecobank Transnational (ETIT)</b> et <b style="color:var(--ink)">Sicable CI (CABC)</b>, toutes deux en forte progression. <b style="color:var(--ink)">Bank of Africa Sénégal (BOAS)</b> recule légèrement ce jour — aucune alerte de seuil déclenchée. Un dividende de <b style="color:var(--ink)">Société Générale CI</b> (hors portefeuille) est annoncé pour le mois prochain, à titre d'exemple de suivi.</p>
+        </div>
+      </div>
+
+      <div class="view" id="view-settings" hidden>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><h2>Compte</h2></div>
+            <div class="field" style="margin-bottom:12px"><label>Adresse e-mail</label><input id="accEmail" value="yorot225@gmail.com" disabled></div>
+            <div class="field" style="margin-bottom:12px"><label>Localisation</label><input value="Abidjan, Côte d'Ivoire" disabled></div>
+            <div class="field" style="margin-bottom:14px"><label>Statut</label><input id="accPlanStatus" value="Plan Annuel — 25 500 FCFA / an" disabled></div>
+            <div class="field">
+              <label>Outils de démonstration</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-ghost btn-sm" id="demoResetTrial">Réinitialiser l'essai (5 jours)</button>
+                <button class="btn btn-ghost btn-sm" id="demoToggleAdmin">Passer en Admin (démo)</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Notifications</h2></div>
+            <div id="notifPrefs"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-tabs" id="bottomTabs">
+  <div class="tab-row">
+    <button class="bottom-tab active" data-view="dashboard">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="2.5" width="6.5" height="6.5" rx="1.3"/><rect x="11" y="2.5" width="6.5" height="6.5" rx="1.3"/><rect x="2.5" y="11" width="6.5" height="6.5" rx="1.3"/><rect x="11" y="11" width="6.5" height="6.5" rx="1.3"/></svg>
+      Accueil
+    </button>
+    <button class="bottom-tab" data-view="portfolio">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="6.5" width="15" height="10" rx="1.6"/><path d="M7 6.5V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5"/><line x1="2.5" y1="11" x2="17.5" y2="11"/></svg>
+      Portefeuille
+    </button>
+    <button class="bottom-tab" data-view="market">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2.5,15 7.5,9 11,12.5 17.5,4.5"/><polyline points="12.5,4.5 17.5,4.5 17.5,9.5"/></svg>
+      Marché
+    </button>
+    <button class="bottom-tab" data-view="alerts">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8a5 5 0 0 1 10 0c0 4 1.5 5 1.5 5h-13S5 12 5 8Z"/><path d="M8.2 16a1.8 1.8 0 0 0 3.6 0"/></svg>
+      Alertes
+      <span class="dot-mark" id="tabAlertDot" hidden></span>
+    </button>
+    <button class="bottom-tab" id="moreTab">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="4.5" cy="10" r="1.4" fill="currentColor" stroke="none"/><circle cx="10" cy="10" r="1.4" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.4" fill="currentColor" stroke="none"/></svg>
+      Plus
+    </button>
+  </div>
+</nav>
+
+<div class="bottom-sheet" id="bottomSheet">
+  <div class="sheet-handle"></div>
+  <button class="sheet-item" data-view="dividends"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7.2"/><path d="M10 6.3v7.4M12 7.6c-.5-.5-1.3-.8-2.1-.8-1.3 0-2.3.7-2.3 1.7s1 1.4 2.3 1.6c1.4.2 2.3.7 2.3 1.7s-1 1.6-2.3 1.6c-.9 0-1.7-.3-2.2-.9"/></svg>Dividendes</button>
+  <button class="sheet-item" data-view="news"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="4" width="15" height="12" rx="1.4"/><line x1="5.5" y1="7.2" x2="14.5" y2="7.2"/><line x1="5.5" y1="10" x2="14.5" y2="10"/><line x1="5.5" y1="12.8" x2="11" y2="12.8"/></svg>Actualités</button>
+  <button class="sheet-item" data-view="reports"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5.5 2.5h6l3 3v12h-9z"/><path d="M11.5 2.5v3h3"/><line x1="7.3" y1="10.5" x2="12.7" y2="10.5"/><line x1="7.3" y1="13.3" x2="12.7" y2="13.3"/></svg>Rapports</button>
+  <button class="sheet-item" data-view="settings"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="2.6"/><path d="M10 3v2M10 15v2M17 10h-2M5 10H3M14.7 5.3l-1.4 1.4M6.7 13.3l-1.4 1.4M14.7 14.7l-1.4-1.4M6.7 6.7 5.3 5.3"/></svg>Paramètres</button>
+</div>
+
+<div class="ad-mobile-bar ad-slot" id="adMobileBar" hidden></div>
+
+<div class="paywall-overlay" id="paywallOverlay" hidden>
+  <div class="paywall-card">
+    <div class="pw-icon"><span class="ic" data-icon="lock"></span></div>
+    <h2>Ton essai gratuit est terminé</h2>
+    <p>Les 5 jours d'essai de BourseClix sont écoulés. Passe à un abonnement pour retrouver ton portefeuille sans publicité et sans limite.</p>
+    <div class="paywall-plans">
+      <button class="btn btn-ghost" id="paywallPricingBtn">Voir les tarifs</button>
+      <button class="btn btn-primary" id="paywallUpgradeBtn">S'abonner</button>
+    </div>
+    <div class="paywall-demo">Environnement de démonstration — <button id="paywallResetBtn">réinitialiser l'essai (5 jours)</button></div>
+  </div>
+</div>
+
+<div class="chart-tooltip" id="tooltip"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- ICONS ---------- */
+const ICN = {
+  grid:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="2.5" width="6.5" height="6.5" rx="1.3"/><rect x="11" y="2.5" width="6.5" height="6.5" rx="1.3"/><rect x="2.5" y="11" width="6.5" height="6.5" rx="1.3"/><rect x="11" y="11" width="6.5" height="6.5" rx="1.3"/></svg>',
+  case:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="6.5" width="15" height="10" rx="1.6"/><path d="M7 6.5V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5"/><line x1="2.5" y1="11" x2="17.5" y2="11"/></svg>',
+  trend:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2.5,15 7.5,9 11,12.5 17.5,4.5"/><polyline points="12.5,4.5 17.5,4.5 17.5,9.5"/></svg>',
+  coin:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7.2"/><path d="M10 6.3v7.4M12 7.6c-.5-.5-1.3-.8-2.1-.8-1.3 0-2.3.7-2.3 1.7s1 1.4 2.3 1.6c1.4.2 2.3.7 2.3 1.7s-1 1.6-2.3 1.6c-.9 0-1.7-.3-2.2-.9"/></svg>',
+  bell:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8a5 5 0 0 1 10 0c0 4 1.5 5 1.5 5h-13S5 12 5 8Z"/><path d="M8.2 16a1.8 1.8 0 0 0 3.6 0"/></svg>',
+  news:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="4" width="15" height="12" rx="1.4"/><line x1="5.5" y1="7.2" x2="14.5" y2="7.2"/><line x1="5.5" y1="10" x2="14.5" y2="10"/><line x1="5.5" y1="12.8" x2="11" y2="12.8"/></svg>',
+  file:'<svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5.5 2.5h6l3 3v12h-9z"/><path d="M11.5 2.5v3h3"/><line x1="7.3" y1="10.5" x2="12.7" y2="10.5"/><line x1="7.3" y1="13.3" x2="12.7" y2="13.3"/></svg>',
+  gear:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="2.6"/><path d="M10 3v2M10 15v2M17 10h-2M5 10H3M14.7 5.3l-1.4 1.4M6.7 13.3l-1.4 1.4M14.7 14.7l-1.4-1.4M6.7 6.7 5.3 5.3"/></svg>',
+  plus:'<svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="10" y1="3" x2="10" y2="17"/><line x1="3" y1="10" x2="17" y2="10"/></svg>',
+  info:'<svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="var(--warn)" stroke-width="1.8"><circle cx="10" cy="10" r="7.3"/><line x1="10" y1="9" x2="10" y2="14"/><circle cx="10" cy="6.2" r=".2" fill="var(--warn)"/></svg>',
+  up:'<svg class="arrow-inline" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6"><polyline points="4,14 10,6 16,14"/></svg>',
+  down:'<svg class="arrow-inline" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6"><polyline points="4,6 10,14 16,6"/></svg>',
+  star:'<svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2.5l2.35 4.76 5.25.76-3.8 3.7.9 5.23L10 14.5l-4.7 2.45.9-5.23-3.8-3.7 5.25-.76z"/></svg>',
+  starOutline:'<svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 2.5l2.35 4.76 5.25.76-3.8 3.7.9 5.23L10 14.5l-4.7 2.45.9-5.23-3.8-3.7 5.25-.76z"/></svg>',
+  lock:'<svg width="21" height="21" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="9" width="12" height="8" rx="1.6"/><path d="M6.5 9V6.5a3.5 3.5 0 0 1 7 0V9"/></svg>'
+};
+document.querySelectorAll('[data-icon]').forEach(el=>{ el.innerHTML = ICN[el.dataset.icon] || ''; });
+
+/* ---------- STORAGE ---------- */
+function loadLS(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
+function saveLS(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+
+/* ---------- IDENTITÉ TRANSMISE DEPUIS LA PAGE DE CONNEXION ----------
+   bourseclix-auth.html est un artefact séparé (origine différente) : il ne peut pas écrire
+   dans le localStorage de cette page. Il transmet donc l'email (et le statut admin) via les
+   paramètres d'URL au moment de la redirection ; on les récupère ici une bonne fois pour
+   toutes, on les enregistre dans NOTRE localStorage, puis on nettoie l'URL. */
+(function bootstrapSessionFromUrl(){
+  try{
+    const qs = new URLSearchParams(window.location.search);
+    if(!qs.has('bc_email') && !qs.has('bc_admin')) return;
+    const email = (qs.get('bc_email') || 'invite@bourseclix.demo').trim().toLowerCase();
+    const isAdmin = qs.get('bc_admin') === '1';
+    localStorage.setItem('bc_user_email', JSON.stringify(email));
+    localStorage.setItem('bc_is_admin', JSON.stringify(isAdmin));
+    if(!localStorage.getItem('bc_trial_start')){
+      localStorage.setItem('bc_trial_start', JSON.stringify(Date.now()));
+    }
+    const cleanUrl = window.location.origin + window.location.pathname + window.location.hash;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }catch(e){}
+})();
+
+/* ---------- DATA ---------- */
+const CLASS_COLOR = {Actions:'var(--c-actions)', Obligations:'var(--c-obligations)', OPCVM:'var(--c-opcvm)'};
+const CLASS_TAGCLASS = {Actions:'class-actions', Obligations:'class-obligations', OPCVM:'class-opcvm'};
+
+const DEFAULT_POSITIONS = [
+  {ticker:'BOAS', name:'Bank of Africa Sénégal', cls:'Actions', qty:25, pru:8050, cours:8050, reserve:0},
+  {ticker:'SEMC', name:'Crown Siem Côte d’Ivoire', cls:'Actions', qty:55, pru:1495, cours:1495, reserve:0},
+  {ticker:'ETIT', name:'Ecobank Transnational Inc.', cls:'Actions', qty:1100, pru:70, cours:70, reserve:0},
+  {ticker:'CABC', name:'Sicable Côte d’Ivoire', cls:'Actions', qty:70, pru:3405, cours:3405, reserve:0}
+];
+let positions = loadLS('bc_positions', DEFAULT_POSITIONS);
+/* Liquidités du compte-titres (hors positions) : espèces disponibles + montant réservé sur ordres en cours */
+let cash = loadLS('bc_cash', {reserved:0, total:41592});
+
+/* Les 47 valeurs cotées à la BRVM (marché des actions), cours de clôture réels du
+   18 septembre 2026 — source : BRVM.org (Bulletins Officiels de la Cote). Volume non
+   repris ici (non disponible de façon fiable sur la source publique consultée). */
+const MARKET = [
+  {ticker:'ABJC', name:"Servair Abidjan Côte d'Ivoire", cours:3930, varDay:-2.96, vol:'—'},
+  {ticker:'BICB', name:"Banque Internationale pour l'Industrie et le Commerce du Bénin", cours:10110, varDay:-3.11, vol:'—'},
+  {ticker:'BICC', name:"BICI Côte d'Ivoire", cours:31675, varDay:1.36, vol:'—'},
+  {ticker:'BNBC', name:"Bernabé Côte d'Ivoire", cours:2000, varDay:-2.91, vol:'—'},
+  {ticker:'BOAB', name:'Bank of Africa Bénin', cours:9850, varDay:-2.48, vol:'—'},
+  {ticker:'BOABF', name:'Bank of Africa Burkina Faso', cours:7800, varDay:-2.50, vol:'—'},
+  {ticker:'BOAC', name:"Bank of Africa Côte d'Ivoire", cours:11805, varDay:-1.62, vol:'—'},
+  {ticker:'BOAM', name:'Bank of Africa Mali', cours:6705, varDay:-2.83, vol:'—'},
+  {ticker:'BOAN', name:'Bank of Africa Niger', cours:5350, varDay:0.0, vol:'—'},
+  {ticker:'BOAS', name:'Bank of Africa Sénégal', cours:8050, varDay:-1.71, vol:'—'},
+  {ticker:'CABC', name:"Sicable Côte d'Ivoire", cours:3405, varDay:-0.73, vol:'—'},
+  {ticker:'CBIBF', name:'Coris Bank International Burkina Faso', cours:33840, varDay:1.01, vol:'—'},
+  {ticker:'CFAC', name:"CFAO Motors Côte d'Ivoire", cours:1630, varDay:-1.21, vol:'—'},
+  {ticker:'CIEC', name:"CIE Côte d'Ivoire", cours:6450, varDay:-0.77, vol:'—'},
+  {ticker:'ECOC', name:"Ecobank Côte d'Ivoire", cours:16995, varDay:-0.61, vol:'—'},
+  {ticker:'ETIT', name:'Ecobank Transnational Incorporated (Togo)', cours:70, varDay:0.0, vol:'—'},
+  {ticker:'FTSC', name:"Filtisac Côte d'Ivoire", cours:2090, varDay:-0.24, vol:'—'},
+  {ticker:'LNBB', name:'Loterie Nationale du Bénin', cours:4080, varDay:-0.37, vol:'—'},
+  {ticker:'NEIC', name:"NEI-CEDA Côte d'Ivoire", cours:2490, varDay:-2.35, vol:'—'},
+  {ticker:'NSBC', name:"NSIA Banque Côte d'Ivoire", cours:24500, varDay:-0.02, vol:'—'},
+  {ticker:'NTLC', name:"Nestlé Côte d'Ivoire", cours:16000, varDay:-2.17, vol:'—'},
+  {ticker:'ONTBF', name:'Onatel Burkina Faso', cours:2900, varDay:0.35, vol:'—'},
+  {ticker:'ORAC', name:"Orange Côte d'Ivoire", cours:22200, varDay:0.0, vol:'—'},
+  {ticker:'ORGT', name:'Oragroup Togo', cours:3205, varDay:-2.73, vol:'—'},
+  {ticker:'PALC', name:"Palm Côte d'Ivoire", cours:8390, varDay:-1.29, vol:'—'},
+  {ticker:'PRSC', name:"Tractafric Motors Côte d'Ivoire", cours:4305, varDay:-3.91, vol:'—'},
+  {ticker:'SAFC', name:"Safca Côte d'Ivoire", cours:4980, varDay:3.00, vol:'—'},
+  {ticker:'SCRC', name:"Sucrivoire Côte d'Ivoire", cours:3085, varDay:0.0, vol:'—'},
+  {ticker:'SDCC', name:"SODE Côte d'Ivoire (SODECI)", cours:12485, varDay:-7.48, vol:'—'},
+  {ticker:'SDSC', name:"Africa Global Logistics Côte d'Ivoire", cours:2910, varDay:-2.68, vol:'—'},
+  {ticker:'SEMC', name:"Eviosys Packaging Siem Côte d'Ivoire", cours:1495, varDay:0.0, vol:'—'},
+  {ticker:'SGBC', name:"Société Générale Côte d'Ivoire", cours:38900, varDay:2.37, vol:'—'},
+  {ticker:'SHEC', name:"Vivo Energy Côte d'Ivoire", cours:2760, varDay:-7.38, vol:'—'},
+  {ticker:'SIBC', name:"Société Ivoirienne de Banque Côte d'Ivoire", cours:9185, varDay:0.93, vol:'—'},
+  {ticker:'SICC', name:"Sicor Côte d'Ivoire", cours:8400, varDay:0.0, vol:'—'},
+  {ticker:'SIVC', name:"Erium Côte d'Ivoire", cours:2175, varDay:-1.81, vol:'—'},
+  {ticker:'SLBC', name:"Solibra Côte d'Ivoire", cours:38000, varDay:0.0, vol:'—'},
+  {ticker:'SMBC', name:"SMB Côte d'Ivoire", cours:17000, varDay:0.0, vol:'—'},
+  {ticker:'SNTS', name:'Sonatel Sénégal', cours:42190, varDay:7.49, vol:'—'},
+  {ticker:'SOGC', name:"SOGB Côte d'Ivoire", cours:7855, varDay:-1.81, vol:'—'},
+  {ticker:'SPHC', name:"SAPH Côte d'Ivoire", cours:7800, varDay:-3.11, vol:'—'},
+  {ticker:'STAC', name:"Setao Côte d'Ivoire", cours:2275, varDay:-6.57, vol:'—'},
+  {ticker:'STBC', name:"Sitab Côte d'Ivoire", cours:21950, varDay:-0.09, vol:'—'},
+  {ticker:'TTLC', name:"TotalEnergies Marketing Côte d'Ivoire", cours:3160, varDay:-3.36, vol:'—'},
+  {ticker:'TTLS', name:'TotalEnergies Marketing Sénégal', cours:3950, varDay:3.95, vol:'—'},
+  {ticker:'UNLC', name:"Unilever Côte d'Ivoire", cours:52380, varDay:-0.61, vol:'—'},
+  {ticker:'UNXC', name:"Uniwax Côte d'Ivoire", cours:2320, varDay:0.0, vol:'—'}
+];
+/* "Suivi d'office" : toute valeur réellement détenue dans le portefeuille est toujours
+   dans la watchlist, même si l'utilisateur ne l'y a jamais ajoutée manuellement (et même
+   pour une session existante dont le stockage local date d'avant cette mise à jour). Se
+   recalcule à chaque chargement, donc une position ajoutée plus tard y apparaît aussi. */
+let watchlist = loadLS('bc_watchlist', positions.map(p=>p.ticker));
+positions.forEach(p=>{ if(!watchlist.includes(p.ticker)) watchlist.push(p.ticker); });
+saveLS('bc_watchlist', watchlist);
+
+const DIVIDENDS = [
+  {name:'Sonatel', ticker:'SNTS', montant:900, exDate:'2026-04-14', payDate:'2026-05-05', statut:'Payé'},
+  {name:"Orange Côte d'Ivoire", ticker:'ORAC', montant:520, exDate:'2026-05-20', payDate:'2026-06-10', statut:'Payé'},
+  {name:'Société Générale CI', ticker:'SGBC', montant:380, exDate:'2026-10-02', payDate:'2026-10-24', statut:'Annoncé'},
+  {name:"Ecobank Côte d'Ivoire", ticker:'ECOC', montant:4, exDate:'2026-09-30', payDate:'2026-10-21', statut:'Annoncé'}
+];
+
+const DEFAULT_ALERTS = [
+  {name:'SNTS', type:'Prix cible atteint', cond:'≥ 16 000 FCFA', active:true},
+  {name:'ORAC', type:'Variation quotidienne', cond:'≤ -5% sur 7 jours', active:true},
+  {name:'SGBC', type:'Dividende annoncé', cond:'Notification à l’annonce', active:false},
+  {name:'EOCI27', type:'Échéance obligataire', cond:'Rappel 30 jours avant', active:true}
+];
+let alerts = loadLS('bc_alerts', DEFAULT_ALERTS);
+
+const NEWS = [
+  {source:'BRVM.org', date:'12 sept. 2026', ticker:'SNTS', title:'Sonatel confirme son calendrier de détachement de dividende', excerpt:"La société a publié la date d'ex-dividende de son prochain versement, conforme au calendrier annoncé en assemblée générale."},
+  {source:'Agence Ecofin', date:'10 sept. 2026', ticker:'ORAC', title:"Orange Côte d'Ivoire : légère consolidation après un pic annuel", excerpt:"Le titre recule modérément après plusieurs séances de hausse, sans annonce spécifique de l'émetteur."},
+  {source:'Sika Finance', date:'8 sept. 2026', ticker:'SGBC', title:'Société Générale CI annonce un dividende pour l’exercice en cours', excerpt:"Le montant par action et la date de paiement ont été communiqués aux actionnaires."},
+  {source:'BRVM.org', date:'5 sept. 2026', ticker:'EOCI27', title:"Emprunt obligataire de l'État : point sur l'échéance 2027", excerpt:"Rappel des modalités de remboursement et du coupon annuel pour les porteurs de titres."}
+];
+
+/* ---------- HELPERS ---------- */
+function fmtFCFA(n){ return Math.round(n).toLocaleString('fr-FR').replace(/ |\s/g,' ') + ' FCFA'; }
+function fmtPct(n, digits){ digits = digits==null?1:digits; const s = n>0?'+':''; return s + n.toFixed(digits) + '%'; }
+function deltaHtml(pct){
+  const up = pct >= 0;
+  return '<span class="delta '+(up?'up':'down')+'">'+(up?ICN.up:ICN.down)+fmtPct(pct)+'</span>';
+}
+function posValue(p){ return p.qty*p.cours; }
+function posCost(p){ return p.qty*p.pru; }
+function posPl(p){ return posValue(p)-posCost(p); }
+function posPlPct(p){ return posCost(p) ? (posPl(p)/posCost(p))*100 : 0; }
+
+/* ---------- NAV / VIEW SWITCHING ---------- */
+const TITLES = {
+  dashboard:['Tableau de bord',"Vue d'ensemble de ton portefeuille BRVM"],
+  portfolio:['Portefeuille','Actions, obligations et OPCVM détenus'],
+  market:['Marché BRVM','Cours des valeurs suivies'],
+  dividends:['Dividendes','Calendrier et revenus perçus'],
+  alerts:['Alertes','Notifications personnalisées'],
+  news:['Actualités','Revue de presse sourcée'],
+  reports:['Rapports','Synthèses et exports'],
+  settings:['Paramètres','Compte et préférences']
+};
+const MORE_VIEWS = ['dividends','news','reports','settings'];
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.hidden = v.id !== 'view-'+id);
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
+  document.querySelectorAll('.bottom-tab[data-view]').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
+  document.getElementById('moreTab').classList.toggle('active', MORE_VIEWS.includes(id));
+  document.getElementById('pageTitle').textContent = TITLES[id][0];
+  document.getElementById('pageSub').textContent = TITLES[id][1];
+  closeSheet();
+  document.querySelector('.content').scrollTop = 0;
+}
+document.getElementById('nav').addEventListener('click', e=>{
+  const btn = e.target.closest('.nav-btn'); if(!btn) return;
+  showView(btn.dataset.view);
+});
+document.getElementById('heroCta').addEventListener('click', ()=>showView('portfolio'));
+document.getElementById('wlAddBtn').addEventListener('click', ()=>showView('market'));
+
+/* ---------- MOBILE BOTTOM TABS + "PLUS" SHEET ---------- */
+const overlay = document.getElementById('overlay');
+const sheet = document.getElementById('bottomSheet');
+function openSheet(){ sheet.classList.add('open'); overlay.classList.add('show'); }
+function closeSheet(){ sheet.classList.remove('open'); overlay.classList.remove('show'); }
+overlay.addEventListener('click', closeSheet);
+document.getElementById('bottomTabs').addEventListener('click', e=>{
+  const viewBtn = e.target.closest('.bottom-tab[data-view]');
+  if(viewBtn){ showView(viewBtn.dataset.view); return; }
+  if(e.target.closest('#moreTab')) openSheet();
+});
+document.getElementById('bottomSheet').addEventListener('click', e=>{
+  const item = e.target.closest('.sheet-item[data-view]'); if(!item) return;
+  showView(item.dataset.view);
+});
+
+/* ---------- TOOLTIP ---------- */
+const tooltip = document.getElementById('tooltip');
+function showTooltip(x,y,html){ tooltip.innerHTML = html; tooltip.style.left=(x+14)+'px'; tooltip.style.top=(y+14)+'px'; tooltip.classList.add('show'); }
+function hideTooltip(){ tooltip.classList.remove('show'); }
+
+/* ---------- DASHBOARD: KPIs ---------- */
+function renderKPIs(){
+  const totalValue = positions.reduce((s,p)=>s+posValue(p),0);
+  const totalCost = positions.reduce((s,p)=>s+posCost(p),0);
+  const totalPl = totalValue-totalCost;
+  const totalPlPct = totalCost? (totalPl/totalCost)*100 : 0;
+  const totalGeneral = totalValue + (cash.total||0);
+  const divYtd = DIVIDENDS.filter(d=>d.statut==='Payé').reduce((s,d)=>{
+    const held = positions.find(p=>p.ticker===d.ticker);
+    return s + (held? held.qty*d.montant : 0);
+  },0);
+  const cards = [
+    {label:'Total général (titres + liquidités)', value:fmtFCFA(totalGeneral), delta:null, sub:fmtFCFA(totalValue)+' en titres · '+fmtFCFA(cash.total||0)+' en liquidités'},
+    {label:'Performance sur PRU', value:fmtPct(totalPlPct), delta:totalPlPct, isPct:true},
+    {label:'Dividendes perçus (2026)', value:fmtFCFA(divYtd), delta:null},
+    {label:'Positions suivies', value:String(positions.length), delta:null}
+  ];
+  document.getElementById('kpiRow').innerHTML = cards.map(c=>`
+    <div class="card kpi">
+      <small>${c.label}</small>
+      <strong class="num">${c.value}</strong>
+      ${c.delta!=null ? deltaHtml(c.delta) : (c.sub? '<div style="color:var(--muted);font-size:10.5px;margin-top:7px">'+c.sub+'</div>' : '')}
+    </div>`).join('');
+}
+
+/* ---------- DASHBOARD: performance chart ---------- */
+/* Données réelles : indice BRVM Composite (sources BRVM.org, Bulletins Officiels de la Cote) et
+   performances 12 mois de BOAS / SEMC / ETIT / CABC (sources Sikafinance, cours au 18/09/2026).
+   Portefeuille = 25 BOAS + 55 SEMC + 1100 ETIT + 70 CABC (positions réelles ci-dessus), valorisé
+   mois par mois à partir des cours réels de départ/arrivée de chaque titre (interpolation lissée
+   entre les deux points confirmés). Au-delà de 12 mois (onglet "2 ans"), l'historique de cours
+   détaillé de ces 4 valeurs n'est pas public : le portefeuille est donc supposé avoir suivi le
+   marché (BRVM Composite) sur cette période plus ancienne, cf. note sous le graphique. */
+const SERIES = {
+  '1a': {
+    labels:['Sep 25','Oct 25','Nov 25','Déc 25','Jan 26','Fév 26','Mar 26','Avr 26','Mai 26','Juin 26','Juil 26','Août 26','Sep 26'],
+    portfolio:[100,106.3,113.0,120.1,127.7,135.7,144.3,153.4,163.0,173.3,184.2,195.8,208.2],
+    index:[100,102.6,105.2,107.9,112.3,116.7,121.1,125.6,131.0,136.4,144.9,153.5,172.7],
+    note:"Sources : BRVM (Bulletins Officiels de la Cote), Sikafinance — cours au 18 sept. 2026. Indice BRVM Composite : 320,6 → 553,7 pts sur la période. Portefeuille : +51,7% (BOAS), +113,6% (SEMC), +288,9% (ETIT), +146,7% (CABC) sur 12 mois, pondérés par tes quantités réelles."
+  },
+  '2a': {
+    labels:['Sep 24','Oct 24','Nov 24','Déc 24','Jan 25','Fév 25','Mar 25','Avr 25','Mai 25','Juin 25','Juil 25','Aoû 25','Sep 25','Oct 25','Nov 25','Déc 25','Jan 26','Fév 26','Mar 26','Avr 26','Mai 26','Juin 26','Juil 26','Août 26','Sep 26'],
+    portfolio:[100,102.0,104.0,105.9,107.8,109.7,111.6,113.5,115.4,117.3,119.2,121.2,123.1,130.8,139.0,147.8,157.1,167.0,177.5,188.7,200.6,213.3,226.7,241.0,256.2],
+    index:[100,102.0,104.0,105.9,107.8,109.7,111.6,113.5,115.4,117.3,119.2,121.2,123.1,126.3,129.5,132.7,138.2,143.6,149.1,154.5,161.2,167.8,178.4,188.9,212.5],
+    note:"Indice BRVM Composite : historique réel sur 24 mois (260,6 → 553,7 pts, sources BRVM.org / BOC). Portefeuille : performance réelle sur les 12 derniers mois (voir onglet « 1 an ») ; sur les 12 mois antérieurs (sept. 2024 → sept. 2025), l'historique de cours détaillé de Crown Siem, Sicable et ETI n'étant pas public, le portefeuille est supposé avoir évolué comme le marché (BRVM Composite)."
+  }
+};
+let currentRange = '1a';
+function renderPerfChart(){
+  const svg = document.getElementById('perfChart');
+  const W=560,H=220,padL=34,padR=10,padT=14,padB=24;
+  const data = SERIES[currentRange];
+  const all = data.portfolio.concat(data.index);
+  const min = Math.min(...all), max = Math.max(...all);
+  const x = i => padL + (i/(data.labels.length-1))*(W-padL-padR);
+  const y = v => padT + (1-(v-min)/(max-min))*(H-padT-padB);
+  function pathFor(arr){ return arr.map((v,i)=>(i===0?'M':'L')+x(i).toFixed(1)+','+y(v).toFixed(1)).join(' '); }
+  const gridLines = [0,1,2,3].map(i=>{
+    const yy = padT + i*((H-padT-padB)/3);
+    const val = max - i*((max-min)/3);
+    return `<line x1="${padL}" x2="${W-padR}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>
+            <text x="${padL-8}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="9.5" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${val.toFixed(0)}</text>`;
+  }).join('');
+  const areaPath = pathFor(data.portfolio) + ` L ${x(data.labels.length-1).toFixed(1)},${(H-padB).toFixed(1)} L ${x(0).toFixed(1)},${(H-padB).toFixed(1)} Z`;
+  const dots = data.labels.map((l,i)=>`<circle class="hoverdot" data-i="${i}" cx="${x(i).toFixed(1)}" cy="${y(data.portfolio[i]).toFixed(1)}" r="9" fill="transparent"/>`).join('');
+  svg.innerHTML = `
+    <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--c-actions)" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="var(--c-actions)" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${gridLines}
+    <path d="${areaPath}" fill="url(#areaFill)" stroke="none"/>
+    <path d="${pathFor(data.index)}" fill="none" stroke="var(--c-obligations)" stroke-width="2" stroke-dasharray="4 3" opacity="0.85"/>
+    <path d="${pathFor(data.portfolio)}" fill="none" stroke="var(--c-actions)" stroke-width="2.4"/>
+    <circle cx="${x(data.labels.length-1).toFixed(1)}" cy="${y(data.portfolio[data.portfolio.length-1]).toFixed(1)}" r="4.2" fill="var(--c-actions)" stroke="var(--surface)" stroke-width="2"/>
+    <line id="crosshair" x1="0" x2="0" y1="${padT}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" style="opacity:0"/>
+    ${dots}
+  `;
+  const noteEl = document.getElementById('perfSourceNote');
+  if(noteEl) noteEl.textContent = data.note || '';
+  const crosshair = svg.querySelector('#crosshair');
+  svg.querySelectorAll('.hoverdot').forEach(dot=>{
+    dot.addEventListener('mouseenter', ev=>{
+      const i = +dot.dataset.i;
+      crosshair.setAttribute('x1', x(i)); crosshair.setAttribute('x2', x(i)); crosshair.style.opacity=1;
+      const rect = dot.getBoundingClientRect();
+      showTooltip(rect.left, rect.top, `<b>${data.labels[i]}</b>
+        <div class="tt-row"><span style="color:#7bdcb8">Portefeuille</span><span class="num">${data.portfolio[i].toFixed(1)}</span></div>
+        <div class="tt-row"><span style="color:#9cc7ea">BRVM Composite</span><span class="num">${data.index[i].toFixed(1)}</span></div>`);
+    });
+    dot.addEventListener('mouseleave', ()=>{ crosshair.style.opacity=0; hideTooltip(); });
+  });
+}
+document.getElementById('rangeSeg').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#rangeSeg button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); currentRange = b.dataset.range; renderPerfChart();
+});
+
+/* ---------- DASHBOARD: donut ---------- */
+function renderDonut(){
+  const byClass = {};
+  positions.forEach(p=>{ byClass[p.cls] = (byClass[p.cls]||0) + posValue(p); });
+  const total = Object.values(byClass).reduce((a,b)=>a+b,0) || 1;
+  const order = ['Actions','Obligations','OPCVM'].filter(c=>byClass[c]);
+  const r = 54, C = 2*Math.PI*r;
+  let offset = 0;
+  const svg = document.getElementById('donutChart');
+  let circles = `<circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--line)" stroke-width="16"/>`;
+  order.forEach(cls=>{
+    const val = byClass[cls]; const frac = val/total; const len = frac*C;
+    circles += `<circle class="donut-seg" data-cls="${cls}" data-val="${val}" data-pct="${(frac*100).toFixed(1)}" cx="70" cy="70" r="${r}" fill="none" stroke="${CLASS_COLOR[cls]}" stroke-width="16"
+      stroke-dasharray="${len.toFixed(1)} ${(C-len).toFixed(1)}" stroke-dashoffset="${(-offset).toFixed(1)}" transform="rotate(-90 70 70)" stroke-linecap="butt" style="cursor:pointer"/>`;
+    offset += len;
+  });
+  svg.innerHTML = circles + `<text x="70" y="66" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="12" fill="var(--ink)">${order.length}</text>
+    <text x="70" y="80" text-anchor="middle" font-size="8.5" fill="var(--muted)">classes</text>`;
+  document.getElementById('donutLegend').innerHTML = order.map(cls=>`
+    <span class="legend-item"><span class="legend-dot" style="background:${CLASS_COLOR[cls]}"></span>${cls} — <span class="num">${fmtFCFA(byClass[cls])}</span> (${((byClass[cls]/total)*100).toFixed(0)}%)</span>
+  `).join('');
+  svg.querySelectorAll('.donut-seg').forEach(seg=>{
+    seg.addEventListener('mouseenter', ev=>{
+      const rect = seg.getBoundingClientRect();
+      showTooltip(rect.left+rect.width/2, rect.top, `<b>${seg.dataset.cls}</b><div class="tt-row"><span class="num">${fmtFCFA(+seg.dataset.val)}</span><span class="num">${seg.dataset.pct}%</span></div>`);
+    });
+    seg.addEventListener('mousemove', ev=>{ showTooltip(ev.clientX, ev.clientY, tooltip.innerHTML); });
+    seg.addEventListener('mouseleave', hideTooltip);
+  });
+}
+
+/* ---------- DASHBOARD: movers + watch feed ---------- */
+function renderTopMovers(){
+  const sorted = [...positions].sort((a,b)=>posPlPct(b)-posPlPct(a));
+  document.getElementById('topMovers').innerHTML = sorted.map(p=>{
+    const pct = posPlPct(p); const up = pct>=0;
+    return `<div class="list-row">
+      <div class="list-icon" style="background:${up?'var(--gain-tint)':'var(--loss-tint)'};color:${up?'var(--gain)':'var(--loss)'}">${up?ICN.up:ICN.down}</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:13px">${p.name}</div><div class="name-sub">${p.ticker} · ${p.cls}</div></div>
+      <div class="${up?'gainer':'loser'} num">${fmtPct(pct)}</div>
+    </div>`;
+  }).join('') || '<p class="empty-hint">Aucune position pour le moment.</p>';
+}
+function renderWatchlistCard(){
+  const items = MARKET.filter(m=>watchlist.includes(m.ticker));
+  document.getElementById('watchlistCard').innerHTML = items.map(m=>`
+    <div class="wl-row">
+      <div class="wl-badge">${m.ticker.slice(0,1)}</div>
+      <div style="flex:1"><div class="wl-name">${m.ticker} · ${m.name}</div><div class="wl-sub">Action BRVM à suivre</div></div>
+      <div style="text-align:right"><div class="num" style="font-weight:700;font-size:12.5px">${fmtFCFA(m.cours)}</div>${deltaHtml(m.varDay)}</div>
+    </div>`).join('') || '<p class="empty-hint">Ajoute des valeurs depuis le Marché BRVM (icône étoile).</p>';
+}
+function renderGreeting(){
+  const d = new Date();
+  let s = d.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  document.getElementById('greetDate').textContent = s;
+}
+function renderMiniTicker(){
+  function tapeHtml(){
+    return MARKET.map(m=>`<span><b>${m.ticker}</b>${fmtFCFA(m.cours)} <span class="${m.varDay>=0?'up':'down'}">${fmtPct(m.varDay)}</span></span>`).join('');
+  }
+  document.getElementById('miniTicker').innerHTML = tapeHtml() + tapeHtml();
+}
+function renderWatchFeed(){
+  const items = [
+    ...alerts.filter(a=>a.active).slice(0,2).map(a=>({type:'alerte', text:`${a.name} · ${a.type}`, sub:a.cond})),
+    ...NEWS.slice(0,2).map(n=>({type:'actu', text:n.title, sub:n.source+' · '+n.date}))
+  ];
+  document.getElementById('watchFeed').innerHTML = items.map(it=>`
+    <div class="list-row">
+      <div class="list-icon" style="background:${it.type==='alerte'?'var(--warn-tint)':'var(--surface-2)'};color:${it.type==='alerte'?'var(--warn)':'var(--muted)'}">${it.type==='alerte'?ICN.bell:ICN.news}</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:12.5px">${it.text}</div><div class="name-sub">${it.sub}</div></div>
+    </div>`).join('');
+}
+
+/* ---------- PORTFOLIO VIEW ---------- */
+function renderPortfolio(){
+  const total = positions.reduce((s,p)=>s+posValue(p),0);
+  document.getElementById('portfolioSummary').textContent = positions.length+' positions · valeur totale '+fmtFCFA(total).replace(' FCFA',' FCFA');
+  document.getElementById('portfolioBody').innerHTML = positions.map((p,i)=>{
+    const val = posValue(p), pl = posPl(p), plPct = posPlPct(p), weight = total? (val/total*100):0;
+    return `<tr>
+      <td><div class="name-cell"><span class="ticker-chip">${p.ticker}</span><div><div style="font-weight:700">${p.name}</div></div></div></td>
+      <td><span class="class-tag ${CLASS_TAGCLASS[p.cls]}">${p.cls}</span></td>
+      <td class="t-right num">${p.qty}</td>
+      <td class="t-right num">${fmtFCFA(p.reserve||0)}</td>
+      <td class="t-right num">${fmtFCFA(p.pru)}</td>
+      <td class="t-right num">${fmtFCFA(p.cours)}</td>
+      <td class="t-right num">${fmtFCFA(val)}</td>
+      <td class="t-right num ${pl>=0?'gainer':'loser'}">${pl>=0?'+':''}${fmtFCFA(pl)} <span style="font-size:10.5px">(${fmtPct(plPct)})</span></td>
+      <td class="t-right num">${weight.toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('portfolioCards').innerHTML = positions.map(p=>{
+    const val = posValue(p), pl = posPl(p), plPct = posPlPct(p), weight = total? (val/total*100):0;
+    return '<div class="mrow"><div class="mrow-top"><div class="mrow-id"><span class="ticker-chip">'+p.ticker+'</span><div class="mrow-name">'+p.name+'</div></div><span class="class-tag '+CLASS_TAGCLASS[p.cls]+'">'+p.cls+'</span></div>'
+      + '<div class="mrow-grid"><div><small>Qte</small><strong class="num">'+p.qty+'</strong></div><div><small>Cours</small><strong class="num">'+fmtFCFA(p.cours)+'</strong></div><div><small>Valeur</small><strong class="num">'+fmtFCFA(val)+'</strong></div></div>'
+      + '<div class="mrow-foot"><span style="color:var(--muted)">Poids '+weight.toFixed(1)+'%</span><span class="num '+(pl>=0?'gainer':'loser')+'">'+(pl>=0?'+':'')+fmtFCFA(pl)+' ('+fmtPct(plPct)+')</span></div></div>';
+  }).join('') || '<p class="empty-hint">Aucune position pour le moment.</p>';
+  renderCash(total);
+}
+function renderCash(portfolioValue){
+  const available = Math.max(0, (cash.total||0) - (cash.reserved||0));
+  const generalTotal = portfolioValue + (cash.total||0);
+  document.getElementById('cashSummary').innerHTML = `
+    <div class="list-row"><div style="flex:1;font-weight:600;font-size:13px">Liquidité réservée</div><div class="num ${cash.reserved?'loser':''}" style="font-weight:700">${fmtFCFA(cash.reserved||0)}</div></div>
+    <div class="list-row"><div style="flex:1;font-weight:600;font-size:13px">Liquidité disponible</div><div class="num gainer" style="font-weight:700">${fmtFCFA(available)}</div></div>
+    <div class="list-row"><div style="flex:1;font-weight:600;font-size:13px">Total liquidité</div><div class="num" style="font-weight:700">${fmtFCFA(cash.total||0)}</div></div>
+    <div class="list-row"><div style="flex:1;font-weight:700;font-size:13px">Total général (titres + liquidités)</div><div class="num" style="font-weight:800;font-size:14px">${fmtFCFA(generalTotal)}</div></div>
+  `;
+}
+document.getElementById('togglePosForm').addEventListener('click', ()=>{ document.getElementById('posForm').hidden = !document.getElementById('posForm').hidden; });
+document.getElementById('cancelPos').addEventListener('click', ()=>{ document.getElementById('posForm').hidden = true; });
+document.getElementById('savePos').addEventListener('click', ()=>{
+  const name = document.getElementById('pf-name').value.trim();
+  const ticker = document.getElementById('pf-ticker').value.trim().toUpperCase();
+  const cls = document.getElementById('pf-class').value;
+  const qty = parseFloat(document.getElementById('pf-qty').value)||0;
+  const pru = parseFloat(document.getElementById('pf-pru').value)||0;
+  const cours = parseFloat(document.getElementById('pf-cours').value)||pru;
+  if(!name || !ticker || !qty){ return; }
+  positions.push({ticker,name,cls,qty,pru,cours,reserve:0});
+  saveLS('bc_positions', positions);
+  ['pf-name','pf-ticker','pf-qty','pf-pru','pf-cours'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('posForm').hidden = true;
+  refreshAll();
+});
+document.getElementById('toggleCashForm').addEventListener('click', ()=>{
+  document.getElementById('cash-reserved').value = cash.reserved||0;
+  document.getElementById('cash-total').value = cash.total||0;
+  document.getElementById('cashForm').hidden = !document.getElementById('cashForm').hidden;
+});
+document.getElementById('cancelCash').addEventListener('click', ()=>{ document.getElementById('cashForm').hidden = true; });
+document.getElementById('saveCash').addEventListener('click', ()=>{
+  cash = {
+    reserved: parseFloat(document.getElementById('cash-reserved').value)||0,
+    total: parseFloat(document.getElementById('cash-total').value)||0
+  };
+  saveLS('bc_cash', cash);
+  document.getElementById('cashForm').hidden = true;
+  refreshAll();
+});
+
+/* ---------- MARKET VIEW ---------- */
+function renderMarket(filter){
+  filter = (filter||'').toLowerCase();
+  const rows = MARKET.filter(m=> !filter || m.name.toLowerCase().includes(filter) || m.ticker.toLowerCase().includes(filter));
+  document.getElementById('marketBody').innerHTML = rows.map(m=>{
+    const on = watchlist.includes(m.ticker);
+    return `<tr>
+      <td class="icon-cell"><button class="star-btn ${on?'on':''}" data-ticker="${m.ticker}">${on?ICN.star:ICN.starOutline}</button></td>
+      <td><div class="name-cell"><span class="ticker-chip">${m.ticker}</span><div style="font-weight:700">${m.name}</div></div></td>
+      <td class="t-right num">${fmtFCFA(m.cours)}</td>
+      <td class="t-right">${deltaHtml(m.varDay)}</td>
+      <td class="t-right num" style="color:var(--muted)">${m.vol}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="empty-hint">Aucune valeur ne correspond à la recherche.</td></tr>';
+  document.getElementById('marketCards').innerHTML = rows.map(m=>{
+    const on = watchlist.includes(m.ticker);
+    return '<div class="mrow"><div class="mrow-top"><div class="mrow-id"><button class="star-btn '+(on?'on':'')+'" data-ticker="'+m.ticker+'" style="flex:none">'+(on?ICN.star:ICN.starOutline)+'</button><span class="ticker-chip">'+m.ticker+'</span><div class="mrow-name">'+m.name+'</div></div></div>'
+      + '<div class="mrow-grid"><div><small>Cours</small><strong class="num">'+fmtFCFA(m.cours)+'</strong></div><div><small>Var. jour</small><strong>'+deltaHtml(m.varDay)+'</strong></div><div><small>Volume</small><strong class="num" style="color:var(--muted)">'+m.vol+'</strong></div></div></div>';
+  }).join('') || '<p class="empty-hint">Aucune valeur ne correspond à la recherche.</p>';
+  document.querySelectorAll('.star-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const t = btn.dataset.ticker;
+      const idx = watchlist.indexOf(t);
+      if(idx>-1) watchlist.splice(idx,1); else watchlist.push(t);
+      saveLS('bc_watchlist', watchlist);
+      renderMarket(document.getElementById('marketSearch').value);
+    });
+  });
+}
+document.getElementById('marketSearch').addEventListener('input', e=>renderMarket(e.target.value));
+
+/* ---------- DIVIDENDS VIEW ---------- */
+function renderDividends(){
+  const totalPaid = DIVIDENDS.filter(d=>d.statut==='Payé').reduce((s,d)=>{ const h=positions.find(p=>p.ticker===d.ticker); return s+(h?h.qty*d.montant:0); },0);
+  const totalAnnounced = DIVIDENDS.filter(d=>d.statut==='Annoncé').reduce((s,d)=>{ const h=positions.find(p=>p.ticker===d.ticker); return s+(h?h.qty*d.montant:0); },0);
+  document.getElementById('divKpis').innerHTML = `
+    <div class="card kpi"><small>Perçus (2026)</small><strong class="num">${fmtFCFA(totalPaid)}</strong></div>
+    <div class="card kpi"><small>Annoncés à venir</small><strong class="num">${fmtFCFA(totalAnnounced)}</strong></div>
+    <div class="card kpi"><small>Sociétés suivies</small><strong class="num">${DIVIDENDS.length}</strong></div>
+  `;
+  document.getElementById('dividendsBody').innerHTML = DIVIDENDS.map(d=>`
+    <tr>
+      <td><div class="name-cell"><span class="ticker-chip">${d.ticker}</span><div style="font-weight:700">${d.name}</div></div></td>
+      <td class="t-right num">${fmtFCFA(d.montant)}</td>
+      <td class="num">${new Date(d.exDate).toLocaleDateString('fr-FR')}</td>
+      <td class="num">${new Date(d.payDate).toLocaleDateString('fr-FR')}</td>
+      <td><span class="pill ${d.statut==='Payé'?'pill-gain':'pill-warn'}">${d.statut}</span></td>
+    </tr>`).join('');
+  document.getElementById('dividendsCards').innerHTML = DIVIDENDS.map(d=>{
+    return '<div class="mrow"><div class="mrow-top"><div class="mrow-id"><span class="ticker-chip">'+d.ticker+'</span><div class="mrow-name">'+d.name+'</div></div><span class="pill '+(d.statut==='Payé'?'pill-gain':'pill-warn')+'">'+d.statut+'</span></div>'
+      + '<div class="mrow-grid"><div><small>Montant</small><strong class="num">'+fmtFCFA(d.montant)+'</strong></div><div><small>Ex-dividende</small><strong>'+new Date(d.exDate).toLocaleDateString('fr-FR')+'</strong></div><div><small>Paiement</small><strong>'+new Date(d.payDate).toLocaleDateString('fr-FR')+'</strong></div></div></div>';
+  }).join('');
+}
+
+/* ---------- ALERTS VIEW ---------- */
+function renderAlerts(){
+  document.getElementById('alertsList').innerHTML = alerts.map((a,i)=>`
+    <div class="list-row">
+      <div class="list-icon" style="background:${a.active?'var(--gain-tint)':'var(--surface-2)'};color:${a.active?'var(--gain)':'var(--faint)'}">${ICN.bell}</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:13px">${a.name} <span style="color:var(--muted);font-weight:500">— ${a.type}</span></div><div class="name-sub">${a.cond}</div></div>
+      <label class="switch"><input type="checkbox" data-i="${i}" ${a.active?'checked':''}><span class="track"></span></label>
+    </div>`).join('');
+  document.querySelectorAll('.switch input').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ alerts[+inp.dataset.i].active = inp.checked; saveLS('bc_alerts', alerts); renderNavAlertCount(); });
+  });
+  renderNavAlertCount();
+}
+function renderNavAlertCount(){
+  const n = alerts.filter(a=>a.active).length;
+  document.getElementById('navAlertCount').textContent = n || '';
+  document.getElementById('navAlertCount').style.display = n? 'inline-block':'none';
+  document.getElementById('notifCount').textContent = n;
+  document.getElementById('tabAlertDot').hidden = !n;
+}
+document.getElementById('toggleAlertForm').addEventListener('click', ()=>{ document.getElementById('alertForm').hidden = !document.getElementById('alertForm').hidden; });
+document.getElementById('cancelAlert').addEventListener('click', ()=>{ document.getElementById('alertForm').hidden = true; });
+document.getElementById('saveAlert').addEventListener('click', ()=>{
+  const name = document.getElementById('al-name').value.trim().toUpperCase();
+  const type = document.getElementById('al-type').value;
+  const cond = document.getElementById('al-cond').value.trim() || 'Sans condition précisée';
+  if(!name) return;
+  alerts.push({name,type,cond,active:true});
+  saveLS('bc_alerts', alerts);
+  document.getElementById('al-name').value=''; document.getElementById('al-cond').value='';
+  document.getElementById('alertForm').hidden = true;
+  renderAlerts(); renderWatchFeed();
+});
+
+/* ---------- NEWS VIEW ---------- */
+function renderNews(){
+  document.getElementById('newsGrid').innerHTML = NEWS.map(n=>`
+    <div class="news-card">
+      <div class="news-meta"><span class="source-badge">${n.source}</span><span>${n.date}</span><span class="tick-tag">${n.ticker}</span></div>
+      <div class="news-title">${n.title}</div>
+      <div class="news-excerpt">${n.excerpt}</div>
+    </div>`).join('');
+}
+
+/* ---------- REPORTS VIEW ---------- */
+function renderReports(){
+  const byClass = {};
+  positions.forEach(p=>{ byClass[p.cls] = byClass[p.cls] || {val:0,cost:0}; byClass[p.cls].val += posValue(p); byClass[p.cls].cost += posCost(p); });
+  const total = Object.values(byClass).reduce((s,c)=>s+c.val,0)||1;
+  document.getElementById('reportsBody').innerHTML = Object.entries(byClass).map(([cls,c])=>{
+    const pct = c.cost? ((c.val-c.cost)/c.cost*100):0;
+    return `<tr><td><span class="class-tag ${CLASS_TAGCLASS[cls]}">${cls}</span></td><td class="t-right num">${fmtFCFA(c.val)}</td><td class="t-right num">${(c.val/total*100).toFixed(1)}%</td><td class="t-right">${deltaHtml(pct)}</td></tr>`;
+  }).join('');
+  document.getElementById('exportNote').textContent = "L'export CSV/PDF sera disponible dans la version connectée du service.";
+}
+document.getElementById('exportCsv').addEventListener('click', e=>{ e.preventDefault(); });
+document.getElementById('exportPdf').addEventListener('click', e=>{ e.preventDefault(); });
+
+/* ---------- SETTINGS VIEW ---------- */
+const NOTIF_PREFS = loadLS('bc_notifprefs', {prix:true, dividendes:true, actus:false, hebdo:true});
+function renderSettings(){
+  const labels = {prix:'Alertes de prix', dividendes:'Annonces de dividendes', actus:'Actualités importantes', hebdo:'Résumé hebdomadaire'};
+  document.getElementById('notifPrefs').innerHTML = Object.entries(labels).map(([key,label])=>`
+    <div class="list-row"><div style="flex:1;font-size:13px;font-weight:600">${label}</div>
+    <label class="switch"><input type="checkbox" data-key="${key}" ${NOTIF_PREFS[key]?'checked':''}><span class="track"></span></label></div>`).join('');
+  document.querySelectorAll('#notifPrefs .switch input').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ NOTIF_PREFS[inp.dataset.key]=inp.checked; saveLS('bc_notifprefs', NOTIF_PREFS); });
+  });
+}
+
+/* ---------- PLAN : ESSAI 5 JOURS / ADMIN / PUBLICITÉ ---------- */
+const TRIAL_DAYS = 5;
+const ADMIN_EMAIL = 'yorot225@gmail.com';
+const PRICING_URL = 'https://claude.ai/artifact/W2FvBikbu1mRdV56CVVXdv#tarifs';
+
+function getPlanState(){
+  let email = loadLS('bc_user_email', null);
+  if(email === null){ email = 'invite@bourseclix.demo'; saveLS('bc_user_email', email); }
+  let isAdmin = loadLS('bc_is_admin', null);
+  if(isAdmin === null){ isAdmin = (email.toLowerCase()===ADMIN_EMAIL); saveLS('bc_is_admin', isAdmin); }
+  let trialStart = loadLS('bc_trial_start', null);
+  if(!trialStart){ trialStart = Date.now(); saveLS('bc_trial_start', trialStart); }
+  const elapsedDays = Math.floor((Date.now()-trialStart)/86400000);
+  const dayNum = Math.min(TRIAL_DAYS, elapsedDays+1);
+  const daysLeft = Math.max(0, TRIAL_DAYS-elapsedDays);
+  const expired = !isAdmin && daysLeft<=0;
+  return {email, isAdmin, trialStart, dayNum, daysLeft, expired};
+}
+function resetTrial(){ saveLS('bc_trial_start', Date.now()); refreshAll(); }
+function setAdminDemo(on){ saveLS('bc_is_admin', !!on); refreshAll(); }
+
+/* Publicités d'exemple (espace « démonstration ») affichées uniquement pendant l'essai gratuit */
+const AD_POOL = [
+  {tag:'BC', title:'Ouvrez un compte-titres en 5 minutes', sub:"Partenaire courtage BRVM — sans frais d'ouverture ce mois-ci", cta:'Découvrir'},
+  {tag:'FO', title:"Formation « Comprendre les obligations d'État »", sub:'Module gratuit de 20 minutes — Académie des marchés UEMOA', cta:'Commencer'},
+  {tag:'AV', title:'Assurance-vie zone UEMOA', sub:'Comparez le rendement de 6 compagnies en un clic', cta:'Comparer'},
+  {tag:'MB', title:'Votre banque, dans votre poche', sub:'Virements inter-banques UEMOA gérés depuis une seule appli', cta:"Voir l'appli"},
+  {tag:'SF', title:'Newsletter marchés BRVM', sub:"L'actualité de la Bourse chaque vendredi, gratuitement", cta:"S'abonner"},
+  {tag:'ED', title:'Cours en ligne : analyse fondamentale', sub:'8 leçons pour lire un bilan avant d’investir', cta:"S'inscrire"}
+];
+const AD_SLOT_IDS = ['adBannerDash','adBannerPortfolio','adBannerMarket','adBannerDividends','adBannerNews','adBannerReports'];
+function adBannerHtml(ad){
+  return `<span class="ad-tag">Publicité</span><div class="ad-visual">${ad.tag}</div>
+    <div class="ad-body"><div class="ad-title">${ad.title}</div><div class="ad-sub">${ad.sub}</div></div>
+    <button class="btn btn-ghost btn-sm ad-cta" type="button">${ad.cta}</button>`;
+}
+function renderAds(plan){
+  AD_SLOT_IDS.forEach((id,i)=>{
+    const el = document.getElementById(id); if(!el) return;
+    el.hidden = plan.isAdmin;
+    if(!plan.isAdmin) el.innerHTML = adBannerHtml(AD_POOL[i % AD_POOL.length]);
+  });
+  const sb = document.getElementById('sidebarAd');
+  if(sb){
+    sb.hidden = plan.isAdmin;
+    if(!plan.isAdmin){
+      const ad = AD_POOL[AD_SLOT_IDS.length % AD_POOL.length];
+      sb.innerHTML = `<span class="ad-tag">Publicité</span><div class="ad-sb-title">${ad.title}</div><div class="ad-sb-sub">${ad.sub}</div><button class="ad-sb-cta" type="button">${ad.cta}</button>`;
+    }
+  }
+  const mb = document.getElementById('adMobileBar');
+  if(mb){
+    mb.hidden = plan.isAdmin;
+    if(!plan.isAdmin){
+      const ad = AD_POOL[(AD_SLOT_IDS.length+1) % AD_POOL.length];
+      mb.innerHTML = `<span class="ad-tag">Pub</span><div style="flex:1;min-width:0;font-weight:700;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ad.title}</div><button class="btn btn-ghost btn-sm" type="button">${ad.cta}</button>`;
+    }
+  }
+}
+function renderPlanUI(){
+  const plan = getPlanState();
+  document.getElementById('avatarInitial').textContent = plan.isAdmin ? 'A' : 'L';
+  document.getElementById('avatarName').textContent = plan.isAdmin ? 'Admin' : 'Louis';
+  document.getElementById('avatarPlan').innerHTML = plan.isAdmin
+    ? '<span class="plan-badge admin">Admin</span>'
+    : `<span class="plan-badge trial ${plan.daysLeft<=1?'low':''}">Essai · J${plan.dayNum}/5</span>`;
+
+  const tb = document.getElementById('trialBanner');
+  tb.hidden = plan.isAdmin || plan.expired;
+  if(!tb.hidden){
+    document.getElementById('trialBannerText').innerHTML = `Essai gratuit — <b>jour ${plan.dayNum} sur 5</b> · ${plan.daysLeft} jour${plan.daysLeft>1?'s':''} restant${plan.daysLeft>1?'s':''} avant la fin de l'accès complet.`;
+    document.getElementById('trialBarFill').style.width = Math.max(8,(plan.dayNum/TRIAL_DAYS)*100)+'%';
+  }
+
+  renderAds(plan);
+  document.getElementById('paywallOverlay').hidden = !plan.expired;
+
+  const accEmail = document.getElementById('accEmail'); if(accEmail) accEmail.value = plan.email;
+  const accPlanStatus = document.getElementById('accPlanStatus');
+  if(accPlanStatus) accPlanStatus.value = plan.isAdmin
+    ? 'Administrateur — accès illimité, sans publicité'
+    : `Essai gratuit — jour ${plan.dayNum}/5 (${plan.daysLeft} j. restant${plan.daysLeft>1?'s':''})`;
+  const toggleBtn = document.getElementById('demoToggleAdmin');
+  if(toggleBtn) toggleBtn.textContent = plan.isAdmin ? 'Repasser en essai (démo)' : 'Passer en Admin (démo)';
+  return plan;
+}
+document.getElementById('demoResetTrial').addEventListener('click', resetTrial);
+document.getElementById('demoToggleAdmin').addEventListener('click', ()=>{ setAdminDemo(!getPlanState().isAdmin); });
+document.getElementById('paywallResetBtn').addEventListener('click', resetTrial);
+document.getElementById('trialUpgradeBtn').addEventListener('click', ()=>{ window.open(PRICING_URL, '_blank'); });
+document.getElementById('paywallPricingBtn').addEventListener('click', ()=>{ window.open(PRICING_URL, '_blank'); });
+document.getElementById('paywallUpgradeBtn').addEventListener('click', ()=>{ window.open(PRICING_URL, '_blank'); });
+
+/* ---------- INIT ---------- */
+function refreshAll(){
+  renderPlanUI();
+  renderGreeting(); renderMiniTicker();
+  renderKPIs(); renderPerfChart(); renderDonut(); renderTopMovers(); renderWatchlistCard(); renderWatchFeed();
+  renderPortfolio(); renderMarket(document.getElementById('marketSearch').value);
+  renderDividends(); renderAlerts(); renderNews(); renderReports(); renderSettings();
+}
+refreshAll();
+})();
+</script>
+</body>
+</html>
