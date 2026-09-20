@@ -367,6 +367,8 @@ tr:last-child td{border-bottom:none}
 .paywall-demo{font-size:11px;color:var(--faint);border-top:1px solid var(--line);padding-top:14px;margin-top:4px}
 .paywall-demo button{background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:11px;font-family:inherit}
 </style>
+<script>try{if(!localStorage.getItem('sb-rguzdyaaqmtvyqdxnaoo-auth-token')){location.replace('connexion.html');}}catch(e){}</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -426,7 +428,7 @@ tr:last-child td{border-bottom:none}
         </div>
 
         <div class="greet-row">
-          <div><div class="greet-date" id="greetDate"></div><h1 class="greet-hi">Bonjour Louis <span aria-hidden="true">👋</span></h1></div>
+          <div><div class="greet-date" id="greetDate"></div><h1 class="greet-hi">Bonjour <span id="greetName">Louis</span> <span aria-hidden="true">👋</span></h1></div>
           <div class="greet-status"><span class="dot"></span>Marché à surveiller</div>
         </div>
 
@@ -616,14 +618,14 @@ tr:last-child td{border-bottom:none}
         <div class="grid-2">
           <div class="card">
             <div class="card-head"><h2>Compte</h2></div>
-            <div class="field" style="margin-bottom:12px"><label>Adresse e-mail</label><input id="accEmail" value="yorot225@gmail.com" disabled></div>
+            <div class="field" style="margin-bottom:12px"><label>Adresse e-mail</label><input id="accEmail" value="" disabled></div>
             <div class="field" style="margin-bottom:12px"><label>Localisation</label><input value="Abidjan, Côte d'Ivoire" disabled></div>
-            <div class="field" style="margin-bottom:14px"><label>Statut</label><input id="accPlanStatus" value="Plan Annuel — 25 500 FCFA / an" disabled></div>
+            <div class="field" style="margin-bottom:14px"><label>Statut</label><input id="accPlanStatus" value="Chargement…" disabled></div>
             <div class="field">
-              <label>Outils de démonstration</label>
+              <label>Session</label>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="btn btn-ghost btn-sm" id="demoResetTrial">Réinitialiser l'essai (5 jours)</button>
-                <button class="btn btn-ghost btn-sm" id="demoToggleAdmin">Passer en Admin (démo)</button>
+                <button class="btn btn-ghost btn-sm" id="demoResetTrial" hidden>Réinitialiser l'essai (5 jours)</button>
+                <button class="btn btn-ghost btn-sm" id="demoToggleAdmin">Se déconnecter</button>
               </div>
             </div>
           </div>
@@ -682,7 +684,7 @@ tr:last-child td{border-bottom:none}
       <button class="btn btn-ghost" id="paywallPricingBtn">Voir les tarifs</button>
       <button class="btn btn-primary" id="paywallUpgradeBtn">S'abonner</button>
     </div>
-    <div class="paywall-demo">Environnement de démonstration — <button id="paywallResetBtn">réinitialiser l'essai (5 jours)</button></div>
+    <div class="paywall-demo"><button id="paywallResetBtn" hidden></button><button id="paywallLogoutBtn">Se déconnecter</button></div>
   </div>
 </div>
 
@@ -713,29 +715,38 @@ const ICN = {
 document.querySelectorAll('[data-icon]').forEach(el=>{ el.innerHTML = ICN[el.dataset.icon] || ''; });
 
 /* ---------- STORAGE ---------- */
-function loadLS(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
-function saveLS(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
-
-/* ---------- IDENTITÉ TRANSMISE DEPUIS LA PAGE DE CONNEXION ----------
-   bourseclix-auth.html est un artefact séparé (origine différente) : il ne peut pas écrire
-   dans le localStorage de cette page. Il transmet donc l'email (et le statut admin) via les
-   paramètres d'URL au moment de la redirection ; on les récupère ici une bonne fois pour
-   toutes, on les enregistre dans NOTRE localStorage, puis on nettoie l'URL. */
-(function bootstrapSessionFromUrl(){
+const SB_URL = 'https://rguzdyaaqmtvyqdxnaoo.supabase.co';
+const SB_KEY = 'sb_publishable_vV_EjKhVRYPqX6NN9jdjvg_TzxVJYNE';
+const SB = supabase.createClient(SB_URL, SB_KEY);
+function bcUid(){ try{ const t = JSON.parse(localStorage.getItem('sb-rguzdyaaqmtvyqdxnaoo-auth-token')); return (t && t.user && t.user.id) || null; }catch(e){ return null; } }
+const BC_UID = bcUid();
+const BC_SYNC_KEYS = ['bc_positions','bc_cash','bc_watchlist','bc_alerts','bc_notifprefs'];
+let BC_PULLED = false, bcPushTimer = null;
+function lsKey(k){ return BC_UID ? k + '.' + BC_UID : k; }
+function loadLS(key, fallback){ try{ const v = localStorage.getItem(lsKey(key)); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
+function saveLS(key, val){ try{ localStorage.setItem(lsKey(key), JSON.stringify(val)); }catch(e){} if(BC_SYNC_KEYS.indexOf(key) >= 0) bcSchedulePush(); }
+function bcSchedulePush(){ if(!BC_UID || !BC_PULLED) return; clearTimeout(bcPushTimer); bcPushTimer = setTimeout(bcPushState, 1500); }
+async function bcPushState(){ try{ const data = {}; BC_SYNC_KEYS.forEach(function(k){ const v = loadLS(k, null); if(v !== null) data[k] = v; }); await SB.from('bourseclix_state').upsert({user_id: BC_UID, data: data, updated_at: new Date().toISOString()}); }catch(e){} }
+async function bcPullState(){
   try{
-    const qs = new URLSearchParams(window.location.search);
-    if(!qs.has('bc_email') && !qs.has('bc_admin')) return;
-    const email = (qs.get('bc_email') || 'invite@bourseclix.demo').trim().toLowerCase();
-    const isAdmin = qs.get('bc_admin') === '1';
-    localStorage.setItem('bc_user_email', JSON.stringify(email));
-    localStorage.setItem('bc_is_admin', JSON.stringify(isAdmin));
-    if(!localStorage.getItem('bc_trial_start')){
-      localStorage.setItem('bc_trial_start', JSON.stringify(Date.now()));
+    const r = await SB.from('bourseclix_state').select('data').eq('user_id', BC_UID).maybeSingle();
+    if(r.error) throw r.error;
+    const remote = r.data && r.data.data;
+    if(remote && Object.keys(remote).length){
+      let changed = false;
+      BC_SYNC_KEYS.forEach(function(k){ if(remote[k] !== undefined){ const str = JSON.stringify(remote[k]); if(localStorage.getItem(lsKey(k)) !== str){ localStorage.setItem(lsKey(k), str); changed = true; } } });
+      if(changed && !sessionStorage.getItem('bc_reloaded')){ sessionStorage.setItem('bc_reloaded','1'); location.reload(); return; }
+    } else if(window.BC_ACCESS && window.BC_ACCESS.plan === 'admin' && localStorage.getItem(lsKey('bc_positions')) === null && !sessionStorage.getItem('bc_reloaded')){
+      localStorage.setItem(lsKey('bc_positions'), JSON.stringify(DEFAULT_POSITIONS));
+      localStorage.setItem(lsKey('bc_cash'), JSON.stringify({reserved:0, total:41592}));
+      localStorage.setItem(lsKey('bc_alerts'), JSON.stringify(DEFAULT_ALERTS));
+      sessionStorage.setItem('bc_reloaded','1'); location.reload(); return;
     }
-    const cleanUrl = window.location.origin + window.location.pathname + window.location.hash;
-    window.history.replaceState({}, document.title, cleanUrl);
+    BC_PULLED = true; bcSchedulePush();
   }catch(e){}
-})();
+}
+
+
 
 /* ---------- DATA ---------- */
 const CLASS_COLOR = {Actions:'var(--c-actions)', Obligations:'var(--c-obligations)', OPCVM:'var(--c-opcvm)'};
@@ -747,9 +758,9 @@ const DEFAULT_POSITIONS = [
   {ticker:'ETIT', name:'Ecobank Transnational Inc.', cls:'Actions', qty:1100, pru:70, cours:70, reserve:0},
   {ticker:'CABC', name:'Sicable Côte d’Ivoire', cls:'Actions', qty:70, pru:3405, cours:3405, reserve:0}
 ];
-let positions = loadLS('bc_positions', DEFAULT_POSITIONS);
+let positions = loadLS('bc_positions', []);
 /* Liquidités du compte-titres (hors positions) : espèces disponibles + montant réservé sur ordres en cours */
-let cash = loadLS('bc_cash', {reserved:0, total:41592});
+let cash = loadLS('bc_cash', {reserved:0, total:0});
 
 /* Les 47 valeurs cotées à la BRVM (marché des actions), cours de clôture réels du
    18 septembre 2026 — source : BRVM.org (Bulletins Officiels de la Cote). Volume non
@@ -824,7 +835,7 @@ const DEFAULT_ALERTS = [
   {name:'SGBC', type:'Dividende annoncé', cond:'Notification à l’annonce', active:false},
   {name:'EOCI27', type:'Échéance obligataire', cond:'Rappel 30 jours avant', active:true}
 ];
-let alerts = loadLS('bc_alerts', DEFAULT_ALERTS);
+let alerts = loadLS('bc_alerts', []);
 
 const NEWS = [
   {source:'BRVM.org', date:'12 sept. 2026', ticker:'SNTS', title:'Sonatel confirme son calendrier de détachement de dividende', excerpt:"La société a publié la date d'ex-dividende de son prochain versement, conforme au calendrier annoncé en assemblée générale."},
@@ -1268,20 +1279,19 @@ const ADMIN_EMAIL = 'yorot225@gmail.com';
 const PRICING_URL = 'index.html#tarifs';
 
 function getPlanState(){
-  let email = loadLS('bc_user_email', null);
-  if(email === null){ email = 'invite@bourseclix.demo'; saveLS('bc_user_email', email); }
-  let isAdmin = loadLS('bc_is_admin', null);
-  if(isAdmin === null){ isAdmin = (email.toLowerCase()===ADMIN_EMAIL); saveLS('bc_is_admin', isAdmin); }
-  let trialStart = loadLS('bc_trial_start', null);
-  if(!trialStart){ trialStart = Date.now(); saveLS('bc_trial_start', trialStart); }
-  const elapsedDays = Math.floor((Date.now()-trialStart)/86400000);
-  const dayNum = Math.min(TRIAL_DAYS, elapsedDays+1);
-  const daysLeft = Math.max(0, TRIAL_DAYS-elapsedDays);
-  const expired = !isAdmin && daysLeft<=0;
-  return {email, isAdmin, trialStart, dayNum, daysLeft, expired};
+  const a = window.BC_ACCESS || loadLS('bc_access_cache', null) || {plan:'trial', email:'', name:''};
+  const isAdmin = a.plan === 'admin';
+  const premium = a.plan === 'premium';
+  const trialStart = a.created_at ? Date.parse(a.created_at) : Date.now();
+  const elapsedDays = Math.max(0, Math.floor((Date.now() - trialStart) / 86400000));
+  const dayNum = Math.min(TRIAL_DAYS, elapsedDays + 1);
+  const daysLeft = Math.max(0, TRIAL_DAYS - elapsedDays);
+  const expired = a.plan === 'expired';
+  return {email: a.email || '', name: a.name || '', isAdmin, premium, trialStart, dayNum, daysLeft, expired};
 }
-function resetTrial(){ saveLS('bc_trial_start', Date.now()); refreshAll(); }
-function setAdminDemo(on){ saveLS('bc_is_admin', !!on); refreshAll(); }
+function bcLogout(){ try{ sessionStorage.removeItem('bc_reloaded'); }catch(e){} SB.auth.signOut().finally(function(){ location.replace('connexion.html'); }); }
+function resetTrial(){ /* désactivé en production */ }
+function setAdminDemo(on){ /* désactivé en production */ }
 
 /* Publicités d'exemple (espace « démonstration ») affichées uniquement pendant l'essai gratuit */
 const AD_POOL = [
@@ -1323,25 +1333,26 @@ function renderAds(plan){
 }
 function renderPlanUI(){
   const plan = getPlanState();
-  document.getElementById('avatarInitial').textContent = plan.isAdmin ? 'A' : 'L';
-  document.getElementById('avatarName').textContent = plan.isAdmin ? 'Admin' : 'Louis';
-  document.getElementById('avatarPlan').innerHTML = plan.isAdmin
+  document.getElementById('avatarInitial').textContent = plan.isAdmin ? 'A' : ((plan.name || plan.email || '?').trim().charAt(0).toUpperCase() || '?');
+  document.getElementById('avatarName').textContent = plan.isAdmin ? 'Admin' : (plan.name || (plan.email || '').split('@')[0] || 'Utilisateur');
+  document.getElementById('avatarPlan').innerHTML = plan.premium ? '<span class="plan-badge admin">Premium</span>' : plan.isAdmin
     ? '<span class="plan-badge admin">Admin</span>'
     : `<span class="plan-badge trial ${plan.daysLeft<=1?'low':''}">Essai · J${plan.dayNum}/5</span>`;
 
   const tb = document.getElementById('trialBanner');
-  tb.hidden = plan.isAdmin || plan.expired;
+  tb.hidden = plan.isAdmin || plan.premium || plan.expired;
   if(!tb.hidden){
     document.getElementById('trialBannerText').innerHTML = `Essai gratuit — <b>jour ${plan.dayNum} sur 5</b> · ${plan.daysLeft} jour${plan.daysLeft>1?'s':''} restant${plan.daysLeft>1?'s':''} avant la fin de l'accès complet.`;
     document.getElementById('trialBarFill').style.width = Math.max(8,(plan.dayNum/TRIAL_DAYS)*100)+'%';
   }
 
-  renderAds(plan);
+  renderAds(Object.assign({}, plan, {isAdmin: plan.isAdmin || plan.premium}));
   document.getElementById('paywallOverlay').hidden = !plan.expired;
 
   const accEmail = document.getElementById('accEmail'); if(accEmail) accEmail.value = plan.email;
+const gn = document.getElementById('greetName'); if(gn) gn.textContent = plan.isAdmin ? 'Louis' : ((plan.name || (plan.email || '').split('@')[0] || '').split(' ')[0]);
   const accPlanStatus = document.getElementById('accPlanStatus');
-  if(accPlanStatus) accPlanStatus.value = plan.isAdmin
+  if(accPlanStatus) accPlanStatus.value = plan.premium ? 'Abonnement Premium — sans publicité' : plan.isAdmin
     ? 'Administrateur — accès illimité, sans publicité'
     : `Essai gratuit — jour ${plan.dayNum}/5 (${plan.daysLeft} j. restant${plan.daysLeft>1?'s':''})`;
   const toggleBtn = document.getElementById('demoToggleAdmin');
@@ -1349,7 +1360,7 @@ function renderPlanUI(){
   return plan;
 }
 document.getElementById('demoResetTrial').addEventListener('click', resetTrial);
-document.getElementById('demoToggleAdmin').addEventListener('click', ()=>{ setAdminDemo(!getPlanState().isAdmin); });
+document.getElementById('demoToggleAdmin').addEventListener('click', ()=>{ bcLogout(); });
 document.getElementById('paywallResetBtn').addEventListener('click', resetTrial);
 document.getElementById('trialUpgradeBtn').addEventListener('click', ()=>{ window.open(PRICING_URL, '_blank'); });
 document.getElementById('paywallPricingBtn').addEventListener('click', ()=>{ window.open(PRICING_URL, '_blank'); });
@@ -1364,6 +1375,18 @@ function refreshAll(){
   renderDividends(); renderAlerts(); renderNews(); renderReports(); renderSettings();
 }
 refreshAll();
+document.getElementById('paywallLogoutBtn').addEventListener('click', bcLogout);
+(async function bcInit(){
+  const sess = await SB.auth.getSession();
+  if(!sess.data || !sess.data.session){ location.replace('connexion.html'); return; }
+  SB.auth.onAuthStateChange(function(ev){ if(ev === 'SIGNED_OUT') location.replace('connexion.html'); });
+  const r = await SB.rpc('bc_access_status');
+  if(r.error || !r.data) return;
+  if(r.data.plan === 'none'){ await SB.auth.signOut(); location.replace('connexion.html'); return; }
+  window.BC_ACCESS = r.data; saveLS('bc_access_cache', r.data);
+  refreshAll();
+  await bcPullState();
+})();
 })();
 </script>
 </body>
