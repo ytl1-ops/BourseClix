@@ -366,6 +366,40 @@ tr:last-child td{border-bottom:none}
 .paywall-plans .btn{flex:1;justify-content:center}
 .paywall-demo{font-size:11px;color:var(--faint);border-top:1px solid var(--line);padding-top:14px;margin-top:4px}
 .paywall-demo button{background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:11px;font-family:inherit}
+/* ============ JOURNAL D'OPÉRATIONS / HISTORIQUE ============ */
+.bc-modal-overlay{position:fixed;inset:0;z-index:55;background:rgba(7,27,45,.62);backdrop-filter:blur(2px);display:flex;align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto}
+.bc-modal-overlay[hidden]{display:none}
+.bc-modal{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);width:100%;max-width:560px;padding:20px;margin:auto 0}
+.bc-modal.wide{max-width:760px}
+.bc-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.bc-modal-head h2{font-size:15.5px}
+.bc-x{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;width:32px;height:32px;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;flex:none}
+.bc-x:hover{color:var(--ink);border-color:var(--line-strong)}
+.op-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.op-grid .full{grid-column:1/-1}
+.op-hint{font-size:11.5px;color:var(--muted);line-height:1.5}
+.op-hint button{background:none;border:none;color:var(--focus);cursor:pointer;font:inherit;text-decoration:underline;padding:0}
+.op-msg{font-size:12px;font-weight:600;color:var(--loss);min-height:16px}
+.op-check{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink)}
+.field textarea{padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink);font-family:inherit;resize:vertical}
+tr.row-link{cursor:pointer}
+tr.row-link:hover td{background:var(--surface-2)}
+.mrow.row-link{cursor:pointer}
+.link-hint{font-size:11.5px;color:var(--muted)}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+.stat-grid div{border:1px solid var(--line);border-radius:10px;padding:9px 10px;display:flex;flex-direction:column;gap:3px}
+.stat-grid small{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:700;color:var(--muted)}
+.stat-grid strong{font-size:12.5px}
+.pill-neutral{background:var(--surface-2);color:var(--muted)}
+.pill-info{background:var(--obligations-tint);color:var(--c-obligations)}
+.audit-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.audit-row:last-child{border-bottom:none}
+.audit-when{color:var(--muted);font-size:11px;min-width:104px}
+.hist-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.hist-filters select,.hist-filters input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;background:var(--surface);color:var(--ink);font-family:inherit}
+.act-btns{display:flex;gap:6px;justify-content:flex-end}
+.seg button{white-space:nowrap}
+@media (max-width:560px){.op-grid{grid-template-columns:1fr}.stat-grid{grid-template-columns:1fr 1fr}.bc-modal{padding:16px}}
 </style>
 <script>try{if(!localStorage.getItem('sb-josbhtkbtpsitnykvbrh-auth-token')){location.replace('connexion.html');}}catch(e){}</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -381,6 +415,7 @@ tr:last-child td{border-bottom:none}
       <div class="nav-group-label">Suivi</div>
       <button class="nav-btn active" data-view="dashboard"><span class="ic" data-icon="grid"></span><span>Tableau de bord</span></button>
       <button class="nav-btn" data-view="portfolio"><span class="ic" data-icon="case"></span><span>Portefeuille</span></button>
+      <button class="nav-btn" data-view="history"><span class="ic" data-icon="clock"></span><span>Historique</span></button>
       <button class="nav-btn" data-view="market"><span class="ic" data-icon="trend"></span><span>Marché BRVM</span></button>
       <button class="nav-btn" data-view="dividends"><span class="ic" data-icon="coin"></span><span>Dividendes</span></button>
       <div class="nav-group-label">Pilotage</div>
@@ -391,7 +426,7 @@ tr:last-child td{border-bottom:none}
       <button class="nav-btn" data-view="settings"><span class="ic" data-icon="gear"></span><span>Paramètres</span></button>
     </nav>
     <div class="ad-sidebar ad-slot" id="sidebarAd" hidden></div>
-    <div class="sidebar-foot">Séance BRVM · cours réels du 18/09/2026<br>Abidjan, Côte d'Ivoire</div>
+    <div class="sidebar-foot"><span id="footSession">Séance BRVM · cours réels</span><br>Abidjan, Côte d'Ivoire</div>
   </aside>
 
   <div class="main">
@@ -440,7 +475,7 @@ tr:last-child td{border-bottom:none}
           <button class="btn hero-cta" id="heroCta">Voir mon portefeuille <span aria-hidden="true">→</span></button>
         </div>
 
-        <div class="demo-banner"><span class="ic" data-icon="info"></span><span><b>Données réelles, hors flux en direct</b> — portefeuille, graphique de performance et les 47 valeurs du marché BRVM basés sur les cours réels au 18 sept. 2026 (source : BRVM.org) ; seuls les dividendes et les actualités restent des exemples de démonstration.</span></div>
+        <div class="demo-banner"><span class="ic" data-icon="info"></span><span><b>Cours BRVM réels, mis à jour chaque jour de bourse</b> — le graphique de performance est calculé à partir de <b>tes opérations datées</b> (achats, ventes, dividendes) et de l'historique réel des cours ; seuls le calendrier des dividendes et les actualités restent des exemples de démonstration.</span></div>
 
         <div class="ad-slot ad-banner" id="adBannerDash" hidden></div>
 
@@ -449,10 +484,11 @@ tr:last-child td{border-bottom:none}
         <div class="grid-2" style="margin-bottom:14px">
           <div class="card">
             <div class="card-head">
-              <div><h2>Performance du portefeuille</h2><div class="hint">Indexée base 100 · données réelles BRVM</div></div>
+              <div><h2>Performance du portefeuille</h2><div class="hint" id="perfHint">Indexée base 100 · rendement pondéré dans le temps</div></div>
               <div class="seg" id="rangeSeg">
-                <button data-range="1a" class="active">1 an</button>
-                <button data-range="2a">2 ans</button>
+                <button data-range="1m">1 mois</button>
+                <button data-range="3m">3 mois</button>
+                <button data-range="base" class="active">Depuis la base</button>
               </div>
             </div>
             <svg id="perfChart" viewBox="0 0 560 220" style="width:100%;height:220px;overflow:visible"></svg>
@@ -492,24 +528,9 @@ tr:last-child td{border-bottom:none}
         <div class="card" style="margin-bottom:16px">
           <div class="card-head">
             <div><h2>Mon portefeuille</h2><div class="hint" id="portfolioSummary"></div></div>
-            <button class="btn btn-primary btn-sm" id="togglePosForm"><span class="ic" data-icon="plus"></span> Ajouter une position</button>
+            <button class="btn btn-primary btn-sm" id="togglePosForm"><span class="ic" data-icon="plus"></span> Nouvelle opération</button>
           </div>
-          <div class="inline-panel" id="posForm" hidden>
-            <div class="form-row">
-              <div class="field"><label>Valeur</label><input id="pf-name" placeholder="Ex. Sonatel"></div>
-              <div class="field"><label>Ticker</label><input id="pf-ticker" placeholder="Ex. SNTS" style="text-transform:uppercase"></div>
-              <div class="field"><label>Classe</label><select id="pf-class"><option>Actions</option><option>Obligations</option><option>OPCVM</option></select></div>
-              <div class="field"><label>Quantité</label><input id="pf-qty" type="number" min="0" placeholder="0"></div>
-            </div>
-            <div class="form-row" style="margin-top:10px">
-              <div class="field"><label>PRU (FCFA)</label><input id="pf-pru" type="number" min="0" placeholder="0"></div>
-              <div class="field"><label>Cours actuel (FCFA)</label><input id="pf-cours" type="number" min="0" placeholder="0"></div>
-              <div style="grid-column:span 2;display:flex;gap:8px">
-                <button class="btn btn-primary" id="savePos">Enregistrer</button>
-                <button class="btn btn-ghost" id="cancelPos">Annuler</button>
-              </div>
-            </div>
-          </div>
+          <div class="link-hint" id="portfolioBaseNote" style="margin:-6px 0 12px"></div>
           <div class="table-wrap"><table>
             <thead><tr><th>Valeur</th><th>Classe</th><th class="t-right">Qté</th><th class="t-right">Réservations</th><th class="t-right">PRU</th><th class="t-right">Cours</th><th class="t-right">Valeur marché</th><th class="t-right">+/- value</th><th class="t-right">Poids</th></tr></thead>
             <tbody id="portfolioBody"></tbody>
@@ -536,10 +557,36 @@ tr:last-child td{border-bottom:none}
         </div>
       </div>
 
+      <div class="view" id="view-history" hidden>
+        <div class="grid-4" id="histKpis" style="margin-bottom:14px"></div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-head">
+            <div><h2>Journal des opérations</h2><div class="hint" id="histBaseNote">Achats, ventes, dividendes et autres mouvements, avec leur date</div></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" id="histExportCsv"><span class="ic" data-icon="file"></span> Export CSV</button>
+              <button class="btn btn-primary btn-sm" id="histNewOp"><span class="ic" data-icon="plus"></span> Nouvelle opération</button>
+            </div>
+          </div>
+          <div class="hist-filters">
+            <select id="histType"><option value="">Tous les types</option><option value="achat">Achats</option><option value="vente">Ventes</option><option value="dividende">Dividendes</option><option value="initial">Positions initiales</option><option value="ajustement">Ajustements</option><option value="depot">Dépôts</option><option value="retrait">Retraits</option></select>
+            <input id="histTicker" placeholder="Filtrer par valeur (ex. SNTS)" style="text-transform:uppercase">
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Date</th><th>Opération</th><th>Valeur</th><th class="t-right">Qté</th><th class="t-right">Prix</th><th class="t-right">Frais</th><th class="t-right">Montant</th><th></th></tr></thead>
+            <tbody id="histBody"></tbody>
+          </table></div>
+          <div class="mrow-list" id="histCards"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h2>Suivi des modifications</h2><div class="hint">Chaque création, modification ou suppression d'opération est conservée avec sa date et son heure</div></div></div>
+          <div id="auditList"><p class="empty-hint">Chargement…</p></div>
+        </div>
+      </div>
+
       <div class="view" id="view-market" hidden>
         <div class="ad-slot ad-banner" id="adBannerMarket" hidden></div>
         <div class="card">
-          <div class="card-head"><div><h2>Cours BRVM — Actions</h2><div class="hint">Les 47 valeurs cotées · cours réels au 18 sept. 2026</div></div>
+          <div class="card-head"><div><h2>Cours BRVM — Actions</h2><div class="hint" id="marketHint">Les 47 valeurs cotées · touche une valeur pour voir son historique de 3 mois</div></div>
             <input id="marketSearch" placeholder="Rechercher une valeur…" style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;width:220px">
           </div>
           <div class="table-wrap"><table>
@@ -608,9 +655,17 @@ tr:last-child td{border-bottom:none}
           </table></div>
           <p class="faq-note" id="exportNote" style="margin-top:12px"></p>
         </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-head"><div><h2>Performance par valeur</h2><div class="hint" id="perfTableHint">Depuis la date d'acquisition ou de référence</div></div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Valeur</th><th>Depuis le</th><th class="t-right">PRU / réf.</th><th class="t-right">Cours</th><th class="t-right">+/- value</th><th class="t-right">Variation</th><th class="t-right">Dividendes</th><th class="t-right">Réalisé</th></tr></thead>
+            <tbody id="perfTableBody"></tbody>
+          </table></div>
+        </div>
         <div class="card">
-          <div class="card-head"><h2>Résumé hebdomadaire</h2><div class="hint">Généré chaque lundi</div></div>
-          <p style="color:var(--muted);font-size:13px;line-height:1.7">Sur les 12 derniers mois, ton portefeuille reste porté par <b style="color:var(--ink)">Ecobank Transnational (ETIT)</b> et <b style="color:var(--ink)">Sicable CI (CABC)</b>, toutes deux en forte progression. <b style="color:var(--ink)">Bank of Africa Sénégal (BOAS)</b> recule légèrement ce jour — aucune alerte de seuil déclenchée. Un dividende de <b style="color:var(--ink)">Société Générale CI</b> (hors portefeuille) est annoncé pour le mois prochain, à titre d'exemple de suivi.</p>
+          <div class="card-head"><h2>Résumé de performance</h2><div class="hint">Calculé à chaque consultation</div></div>
+          <p id="perfSummaryText" style="color:var(--muted);font-size:13px;line-height:1.7"></p>
+          
         </div>
       </div>
 
@@ -667,6 +722,7 @@ tr:last-child td{border-bottom:none}
 
 <div class="bottom-sheet" id="bottomSheet">
   <div class="sheet-handle"></div>
+  <button class="sheet-item" data-view="history"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7.2"/><polyline points="10,5.8 10,10 13,11.8"/></svg>Historique</button>
   <button class="sheet-item" data-view="dividends"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7.2"/><path d="M10 6.3v7.4M12 7.6c-.5-.5-1.3-.8-2.1-.8-1.3 0-2.3.7-2.3 1.7s1 1.4 2.3 1.6c1.4.2 2.3.7 2.3 1.7s-1 1.6-2.3 1.6c-.9 0-1.7-.3-2.2-.9"/></svg>Dividendes</button>
   <button class="sheet-item" data-view="news"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="4" width="15" height="12" rx="1.4"/><line x1="5.5" y1="7.2" x2="14.5" y2="7.2"/><line x1="5.5" y1="10" x2="14.5" y2="10"/><line x1="5.5" y1="12.8" x2="11" y2="12.8"/></svg>Actualités</button>
   <button class="sheet-item" data-view="reports"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5.5 2.5h6l3 3v12h-9z"/><path d="M11.5 2.5v3h3"/><line x1="7.3" y1="10.5" x2="12.7" y2="10.5"/><line x1="7.3" y1="13.3" x2="12.7" y2="13.3"/></svg>Rapports</button>
@@ -685,6 +741,39 @@ tr:last-child td{border-bottom:none}
       <button class="btn btn-primary" id="paywallUpgradeBtn">S'abonner</button>
     </div>
     <div class="paywall-demo"><button id="paywallResetBtn" hidden></button><button id="paywallLogoutBtn">Se déconnecter</button></div>
+  </div>
+</div>
+
+<div class="bc-modal-overlay" id="opOverlay" hidden>
+  <div class="bc-modal" role="dialog" aria-modal="true" aria-labelledby="opTitle">
+    <div class="bc-modal-head"><h2 id="opTitle">Nouvelle opération</h2><button class="bc-x" id="opClose" aria-label="Fermer">×</button></div>
+    <div class="op-grid">
+      <div class="field"><label for="op-type">Type d'opération</label>
+        <select id="op-type"><option value="achat">Achat</option><option value="vente">Vente</option><option value="dividende">Dividende perçu</option><option value="ajustement">Ajustement (attribution gratuite, regroupement…)</option><option value="initial">Position initiale (solde d'ouverture)</option><option value="depot">Dépôt de liquidités</option><option value="retrait">Retrait de liquidités</option></select></div>
+      <div class="field"><label for="op-date">Date de l'opération</label><input id="op-date" type="date"></div>
+      <div class="field op-sec"><label for="op-ticker">Valeur (ticker)</label><input id="op-ticker" list="op-tickers" placeholder="Ex. SNTS" autocomplete="off" style="text-transform:uppercase"><datalist id="op-tickers"></datalist></div>
+      <div class="field op-sec"><label for="op-name">Nom de la valeur</label><input id="op-name" placeholder="Rempli automatiquement pour la BRVM"></div>
+      <div class="field op-sec"><label for="op-cls">Classe d'actif</label><select id="op-cls"><option>Actions</option><option>Obligations</option><option>OPCVM</option></select></div>
+      <div class="field"><label for="op-qty" id="op-qty-l">Quantité</label><input id="op-qty" type="number" step="any" placeholder="0" inputmode="decimal"></div>
+      <div class="field"><label for="op-price" id="op-price-l">Prix unitaire (FCFA)</label><input id="op-price" type="number" min="0" step="any" placeholder="0" inputmode="decimal"></div>
+      <div class="field op-sec"><label for="op-fees">Frais / commissions (FCFA)</label><input id="op-fees" type="number" min="0" step="any" placeholder="0" inputmode="decimal"></div>
+      <div class="full op-hint" id="op-hint"></div>
+      <div class="field full"><label for="op-note">Note (facultatif)</label><input id="op-note" maxlength="200" placeholder="Ex. Ordre passé via SGI…"></div>
+      <label class="op-check full" id="op-cash-l"><input type="checkbox" id="op-cash" checked> Répercuter cette opération sur mes liquidités</label>
+      <div class="full op-hint" id="op-total"></div>
+      <div class="full op-msg" id="op-msg" role="alert"></div>
+      <div class="full" style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost" id="opCancel">Annuler</button>
+        <button class="btn btn-primary" id="opSave">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bc-modal-overlay" id="posOverlay" hidden>
+  <div class="bc-modal wide" role="dialog" aria-modal="true" aria-labelledby="posTitle">
+    <div class="bc-modal-head"><div><h2 id="posTitle"></h2><div class="name-sub" id="posSub"></div></div><button class="bc-x" id="posClose" aria-label="Fermer">×</button></div>
+    <div id="posBody"></div>
   </div>
 </div>
 
@@ -710,6 +799,7 @@ const ICN = {
   down:'<svg class="arrow-inline" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6"><polyline points="4,6 10,14 16,6"/></svg>',
   star:'<svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2.5l2.35 4.76 5.25.76-3.8 3.7.9 5.23L10 14.5l-4.7 2.45.9-5.23-3.8-3.7 5.25-.76z"/></svg>',
   starOutline:'<svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 2.5l2.35 4.76 5.25.76-3.8 3.7.9 5.23L10 14.5l-4.7 2.45.9-5.23-3.8-3.7 5.25-.76z"/></svg>',
+  clock:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7.2"/><polyline points="10,5.8 10,10 13,11.8"/></svg>',
   lock:'<svg width="21" height="21" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="9" width="12" height="8" rx="1.6"/><path d="M6.5 9V6.5a3.5 3.5 0 0 1 7 0V9"/></svg>'
 };
 document.querySelectorAll('[data-icon]').forEach(el=>{ el.innerHTML = ICN[el.dataset.icon] || ''; });
@@ -720,7 +810,7 @@ const SB_KEY = 'sb_publishable_5oRwKiRLqtgSvwvhREYg9w_B1wJlMw4';
 const SB = supabase.createClient(SB_URL, SB_KEY);
 function bcUid(){ try{ const t = JSON.parse(localStorage.getItem('sb-josbhtkbtpsitnykvbrh-auth-token')); return (t && t.user && t.user.id) || null; }catch(e){ return null; } }
 const BC_UID = bcUid();
-const BC_SYNC_KEYS = ['bc_positions','bc_cash','bc_watchlist','bc_alerts','bc_notifprefs'];
+const BC_SYNC_KEYS = ['bc_positions','bc_cash','bc_watchlist','bc_alerts','bc_notifprefs','bc_migrated'];
 let BC_PULLED = false, bcPushTimer = null;
 function lsKey(k){ return BC_UID ? k + '.' + BC_UID : k; }
 function loadLS(key, fallback){ try{ const v = localStorage.getItem(lsKey(key)); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
@@ -860,6 +950,7 @@ function posPlPct(p){ return posCost(p) ? (posPl(p)/posCost(p))*100 : 0; }
 const TITLES = {
   dashboard:['Tableau de bord',"Vue d'ensemble de ton portefeuille BRVM"],
   portfolio:['Portefeuille','Actions, obligations et OPCVM détenus'],
+  history:['Historique','Journal des opérations et suivi des modifications'],
   market:['Marché BRVM','Cours des valeurs suivies'],
   dividends:['Dividendes','Calendrier et revenus perçus'],
   alerts:['Alertes','Notifications personnalisées'],
@@ -867,7 +958,7 @@ const TITLES = {
   reports:['Rapports','Synthèses et exports'],
   settings:['Paramètres','Compte et préférences']
 };
-const MORE_VIEWS = ['dividends','news','reports','settings'];
+const MORE_VIEWS = ['history','dividends','news','reports','settings'];
 function showView(id){
   document.querySelectorAll('.view').forEach(v=>v.hidden = v.id !== 'view-'+id);
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
@@ -877,6 +968,8 @@ function showView(id){
   document.getElementById('pageSub').textContent = TITLES[id][1];
   closeSheet();
   document.querySelector('.content').scrollTop = 0;
+  if(id==='history') renderAudit();
+  if(typeof bcMaybeRefresh==='function') bcMaybeRefresh();
 }
 document.getElementById('nav').addEventListener('click', e=>{
   const btn = e.target.closest('.nav-btn'); if(!btn) return;
@@ -913,54 +1006,96 @@ function renderKPIs(){
   const totalPl = totalValue-totalCost;
   const totalPlPct = totalCost? (totalPl/totalCost)*100 : 0;
   const totalGeneral = totalValue + (cash.total||0);
-  const divYtd = DIVIDENDS.filter(d=>d.statut==='Payé').reduce((s,d)=>{
-    const held = positions.find(p=>p.ticker===d.ticker);
-    return s + (held? held.qty*d.montant : 0);
-  },0);
+  const divYtd = LEDGER.dividendsYear;
   const cards = [
     {label:'Total général (titres + liquidités)', value:fmtFCFA(totalGeneral), delta:null, sub:fmtFCFA(totalValue)+' en titres · '+fmtFCFA(cash.total||0)+' en liquidités'},
-    {label:'Performance sur PRU', value:fmtPct(totalPlPct), delta:totalPlPct, isPct:true},
-    {label:'Dividendes perçus (2026)', value:fmtFCFA(divYtd), delta:null},
+    {label:'Performance depuis acquisition / référence', value:fmtPct(totalPlPct), delta:totalPlPct, isPct:true, sub:(totalPl>=0?'+':'')+fmtFCFA(totalPl)+' de +/- value latente'},
+    {label:'Dividendes perçus ('+new Date().getFullYear()+')', value:fmtFCFA(divYtd), delta:null},
     {label:'Positions suivies', value:String(positions.length), delta:null}
   ];
   document.getElementById('kpiRow').innerHTML = cards.map(c=>`
     <div class="card kpi">
       <small>${c.label}</small>
       <strong class="num">${c.value}</strong>
-      ${c.delta!=null ? deltaHtml(c.delta) : (c.sub? '<div style="color:var(--muted);font-size:10.5px;margin-top:7px">'+c.sub+'</div>' : '')}
+      ${c.delta!=null ? deltaHtml(c.delta) : ''}${c.sub? '<div style="color:var(--muted);font-size:10.5px;margin-top:7px">'+c.sub+'</div>' : ''}
     </div>`).join('');
 }
 
 /* ---------- DASHBOARD: performance chart ---------- */
-/* Données réelles : indice BRVM Composite (sources BRVM.org, Bulletins Officiels de la Cote) et
-   performances 12 mois de BOAS / SEMC / ETIT / CABC (sources Sikafinance, cours au 18/09/2026).
-   Portefeuille = 25 BOAS + 55 SEMC + 1100 ETIT + 70 CABC (positions réelles ci-dessus), valorisé
-   mois par mois à partir des cours réels de départ/arrivée de chaque titre (interpolation lissée
-   entre les deux points confirmés). Au-delà de 12 mois (onglet "2 ans"), l'historique de cours
-   détaillé de ces 4 valeurs n'est pas public : le portefeuille est donc supposé avoir suivi le
-   marché (BRVM Composite) sur cette période plus ancienne, cf. note sous le graphique. */
-const SERIES = {
-  '1a': {
-    labels:['Sep 25','Oct 25','Nov 25','Déc 25','Jan 26','Fév 26','Mar 26','Avr 26','Mai 26','Juin 26','Juil 26','Août 26','Sep 26'],
-    portfolio:[100,106.3,113.0,120.1,127.7,135.7,144.3,153.4,163.0,173.3,184.2,195.8,208.2],
-    index:[100,102.6,105.2,107.9,112.3,116.7,121.1,125.6,131.0,136.4,144.9,153.5,172.7],
-    note:"Sources : BRVM (Bulletins Officiels de la Cote), Sikafinance — cours au 18 sept. 2026. Indice BRVM Composite : 320,6 → 553,7 pts sur la période. Portefeuille : +51,7% (BOAS), +113,6% (SEMC), +288,9% (ETIT), +146,7% (CABC) sur 12 mois, pondérés par tes quantités réelles."
-  },
-  '2a': {
-    labels:['Sep 24','Oct 24','Nov 24','Déc 24','Jan 25','Fév 25','Mar 25','Avr 25','Mai 25','Juin 25','Juil 25','Aoû 25','Sep 25','Oct 25','Nov 25','Déc 25','Jan 26','Fév 26','Mar 26','Avr 26','Mai 26','Juin 26','Juil 26','Août 26','Sep 26'],
-    portfolio:[100,102.0,104.0,105.9,107.8,109.7,111.6,113.5,115.4,117.3,119.2,121.2,123.1,130.8,139.0,147.8,157.1,167.0,177.5,188.7,200.6,213.3,226.7,241.0,256.2],
-    index:[100,102.0,104.0,105.9,107.8,109.7,111.6,113.5,115.4,117.3,119.2,121.2,123.1,126.3,129.5,132.7,138.2,143.6,149.1,154.5,161.2,167.8,178.4,188.9,212.5],
-    note:"Indice BRVM Composite : historique réel sur 24 mois (260,6 → 553,7 pts, sources BRVM.org / BOC). Portefeuille : performance réelle sur les 12 derniers mois (voir onglet « 1 an ») ; sur les 12 mois antérieurs (sept. 2024 → sept. 2025), l'historique de cours détaillé de Crown Siem, Sicable et ETI n'étant pas public, le portefeuille est supposé avoir évolué comme le marché (BRVM Composite)."
+/* Calculée à partir du journal d'opérations de l'utilisateur (achats, ventes, dividendes) et de l'historique
+   réel des cours de clôture BRVM (table bc_prices, source publique Sikafinance / BRVM). Rendement pondéré dans
+   le temps (TWR) : les apports et retraits de titres ne créent pas de fausse performance. Référence : indice
+   BRVM Composite, rebasé à 100 sur la même période. */
+let currentRange = 'base';
+let PERF = null; /* dernière série calculée */
+function fmtDM(d){ return d.slice(8,10)+'/'+d.slice(5,7); }
+function fmtDMY(d){ return d ? d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4) : ''; }
+function computePerf(range){
+  const idx = PRICES['BRVMC'] || [];
+  if(!idx.length) return null;
+  const today = idx[idx.length-1][0];
+  let start = bcBaseDate();
+  if(range==='1m'){ start = addDays(today, -30); }
+  else if(range==='3m'){ start = addDays(today, -91); }
+  /* la série démarre à la dernière séance connue à la date de départ (le cours de référence sert de base 100) */
+  let startIdx = 0; for(let i=0;i<idx.length;i++){ if(idx[i][0] <= start) startIdx = i; }
+  const dates = idx.slice(startIdx).map(r=>r[0]);
+  if(dates.length < 2) return null;
+  /* une opération datée un jour sans séance s'exécute au dernier cours connu (séance précédente) */
+  const eff = d => { let e = null; for(let i=0;i<idx.length;i++){ if(idx[i][0] <= d) e = idx[i][0]; else break; } return e || d; };
+  const sorted = ledgerSorted().map(o=>Object.assign({}, o, {eff: eff(o.op_date)}));
+  sorted.sort((x,y)=> x.eff < y.eff ? -1 : x.eff > y.eff ? 1 : 0);
+  let oi = 0; const qty = {};
+  function applyUpTo(d){ while(oi < sorted.length && sorted[oi].eff <= d){ applyQty(qty, sorted[oi]); oi++; } }
+  function valueAt(d, q){ let v = 0; for(const t in q){ if(q[t] > 1e-9){ const p = priceOn(t, d); v += q[t] * (p!=null ? p : (costRef[t]||0)); } } return v; }
+  const costRef = {}; positions.forEach(p=>{ costRef[p.ticker] = p.pru; });
+  const labels = [], dts = [], port = [], bench = [], vals = [];
+  let I = null, Iprev = null, prevQty = null, prevDate = null, prevV = 0;
+  const b0 = idx.find(r=>r[0] >= dates[0]); const bBase = b0 ? b0[1] : idx[0][1];
+  for(let i=0;i<dates.length;i++){
+    const d = dates[i];
+    if(i === 0){ applyUpTo(d); }
+    let r = null;
+    if(prevQty && prevV > 0){
+      let num = 0;
+      for(const t in prevQty){ if(prevQty[t] > 1e-9){ const p1 = priceOn(t, d), p0 = priceOn(t, prevDate); if(p1!=null && p0!=null) num += prevQty[t] * (p1 - p0); } }
+      sorted.forEach(o=>{ if(o.op_type==='dividende' && o.eff > prevDate && o.eff <= d) num += o.qty * o.price; });
+      r = num / prevV;
+    }
+    if(i > 0) applyUpTo(d);
+    const V = valueAt(d, qty);
+    if(I === null){ if(V > 0) I = 100; }
+    else if(r !== null){ I = I * (1 + r); }
+    labels.push(fmtDM(d)); dts.push(d); port.push(I); vals.push(V);
+    const bi = idx.find(x=>x[0] === d); bench.push(bi ? bi[1]/bBase*100 : (bench.length ? bench[bench.length-1] : 100));
+    prevQty = Object.assign({}, qty); prevDate = d; prevV = V;
   }
-};
-let currentRange = '1a';
+  if(I === null) return {empty:true, labels:dts.map(fmtDM), dates:dts, index:bench.slice(), portfolio:dts.map(()=>null), values:vals, start:dates[0], end:today};
+  /* rebase : la série démarre à 100 à la première date où le portefeuille est valorisé */
+  const first = port.findIndex(v=>v!==null);
+  const bBase2 = bench[first];
+  return {empty:false, labels, dates:dts, portfolio:port, index:bench.map((v,i)=> i>=first ? v/bBase2*100 : null), values:vals, start:dts[first], end:today, first};
+}
 function renderPerfChart(){
   const svg = document.getElementById('perfChart');
-  const W=560,H=220,padL=34,padR=10,padT=14,padB=24;
-  const data = SERIES[currentRange];
-  const all = data.portfolio.concat(data.index);
-  const min = Math.min(...all), max = Math.max(...all);
-  const x = i => padL + (i/(data.labels.length-1))*(W-padL-padR);
+  const note = document.getElementById('perfSourceNote');
+  const data = computePerf(currentRange);
+  PERF = data;
+  if(!data){ svg.innerHTML = ''; note.textContent = 'Historique des cours en cours de chargement…'; return; }
+  const W=560,H=220,padL=34,padR=10,padT=14,padB=26;
+  if(data.empty){
+    svg.innerHTML = `<text x="${W/2}" y="${H/2-4}" text-anchor="middle" font-size="12.5" fill="var(--muted)" font-family="Inter, sans-serif">Aucune position sur cette période.</text>
+      <text x="${W/2}" y="${H/2+16}" text-anchor="middle" font-size="11.5" fill="var(--faint)" font-family="Inter, sans-serif">Ajoute ta première opération dans le Portefeuille.</text>`;
+    note.textContent = 'La performance démarre dès la date de ta première opération. Base de suivi : historique des 3 mois précédant la création du compte (depuis le '+fmtDMY(bcBaseDate())+').';
+    return;
+  }
+  const f = data.first;
+  const L = data.labels.slice(f), P = data.portfolio.slice(f), B = data.index.slice(f), D = data.dates.slice(f), Vv = data.values.slice(f);
+  const all = P.concat(B);
+  let min = Math.min(...all), max = Math.max(...all);
+  if(max - min < 1){ min -= 1; max += 1; }
+  const n = L.length;
+  const x = i => padL + (n>1 ? i/(n-1) : 0.5)*(W-padL-padR);
   const y = v => padT + (1-(v-min)/(max-min))*(H-padT-padB);
   function pathFor(arr){ return arr.map((v,i)=>(i===0?'M':'L')+x(i).toFixed(1)+','+y(v).toFixed(1)).join(' '); }
   const gridLines = [0,1,2,3].map(i=>{
@@ -969,32 +1104,47 @@ function renderPerfChart(){
     return `<line x1="${padL}" x2="${W-padR}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>
             <text x="${padL-8}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="9.5" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${val.toFixed(0)}</text>`;
   }).join('');
-  const areaPath = pathFor(data.portfolio) + ` L ${x(data.labels.length-1).toFixed(1)},${(H-padB).toFixed(1)} L ${x(0).toFixed(1)},${(H-padB).toFixed(1)} Z`;
-  const dots = data.labels.map((l,i)=>`<circle class="hoverdot" data-i="${i}" cx="${x(i).toFixed(1)}" cy="${y(data.portfolio[i]).toFixed(1)}" r="9" fill="transparent"/>`).join('');
+  const ticks = []; const nt = Math.min(5, n); for(let k=0;k<nt;k++){ ticks.push(Math.round(k*(n-1)/Math.max(1,nt-1))); }
+  const xlab = [...new Set(ticks)].map(i=>`<text x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="${i===0?'start':(i===n-1?'end':'middle')}" font-size="9.5" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${L[i]}</text>`).join('');
+  const areaPath = pathFor(P) + ` L ${x(n-1).toFixed(1)},${(H-padB).toFixed(1)} L ${x(0).toFixed(1)},${(H-padB).toFixed(1)} Z`;
+  /* marqueurs des opérations (achat ▲ / vente ▼ / dividende ●) */
+  let marks = '';
+  ledgerSorted().forEach(o=>{
+    if(!['achat','vente','dividende','initial'].includes(o.op_type)) return;
+    if(o.op_date < D[0] || o.op_date > D[n-1]) return;
+    let k = 0; for(let i=0;i<n;i++){ if(D[i] <= o.op_date) k = i; }
+    const cx = x(k).toFixed(1), cy = (H-padB-5).toFixed(1);
+    const col = o.op_type==='vente' ? 'var(--loss)' : (o.op_type==='dividende' ? 'var(--c-opcvm)' : 'var(--c-actions)');
+    marks += o.op_type==='vente'
+      ? `<path d="M${cx-4},${cy-4} L${+cx+4},${cy-4} L${cx},${+cy+3} Z" fill="${col}"/>`
+      : (o.op_type==='dividende' ? `<circle cx="${cx}" cy="${cy}" r="3.2" fill="${col}"/>` : `<path d="M${cx-4},${+cy+3} L${+cx+4},${+cy+3} L${cx},${cy-4} Z" fill="${col}"/>`);
+  });
+  const dots = L.map((l,i)=>`<circle class="hoverdot" data-i="${i}" cx="${x(i).toFixed(1)}" cy="${y(P[i]).toFixed(1)}" r="${n>45?4:9}" fill="transparent"/>`).join('');
   svg.innerHTML = `
     <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="var(--c-actions)" stop-opacity="0.22"/>
       <stop offset="100%" stop-color="var(--c-actions)" stop-opacity="0"/>
     </linearGradient></defs>
-    ${gridLines}
+    ${gridLines}${xlab}
     <path d="${areaPath}" fill="url(#areaFill)" stroke="none"/>
-    <path d="${pathFor(data.index)}" fill="none" stroke="var(--c-obligations)" stroke-width="2" stroke-dasharray="4 3" opacity="0.85"/>
-    <path d="${pathFor(data.portfolio)}" fill="none" stroke="var(--c-actions)" stroke-width="2.4"/>
-    <circle cx="${x(data.labels.length-1).toFixed(1)}" cy="${y(data.portfolio[data.portfolio.length-1]).toFixed(1)}" r="4.2" fill="var(--c-actions)" stroke="var(--surface)" stroke-width="2"/>
+    <path d="${pathFor(B)}" fill="none" stroke="var(--c-obligations)" stroke-width="2" stroke-dasharray="4 3" opacity="0.85"/>
+    <path d="${pathFor(P)}" fill="none" stroke="var(--c-actions)" stroke-width="2.4"/>
+    <circle cx="${x(n-1).toFixed(1)}" cy="${y(P[n-1]).toFixed(1)}" r="4.2" fill="var(--c-actions)" stroke="var(--surface)" stroke-width="2"/>
+    ${marks}
     <line id="crosshair" x1="0" x2="0" y1="${padT}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" style="opacity:0"/>
-    ${dots}
-  `;
-  const noteEl = document.getElementById('perfSourceNote');
-  if(noteEl) noteEl.textContent = data.note || '';
+    ${dots}`;
+  const perfPct = P[n-1]-100, benchPct = B[n-1]-100;
+  note.innerHTML = `Du ${fmtDMY(D[0])} au ${fmtDMY(D[n-1])} : portefeuille <b>${fmtPct(perfPct)}</b> · BRVM Composite <b>${fmtPct(benchPct)}</b>. Base de suivi : 3 mois avant la création du compte (depuis le ${fmtDMY(bcBaseDate())}). ▲ achat · ▼ vente · ● dividende. Sources : cours de clôture BRVM (Sikafinance), tes opérations datées.`;
   const crosshair = svg.querySelector('#crosshair');
   svg.querySelectorAll('.hoverdot').forEach(dot=>{
     dot.addEventListener('mouseenter', ev=>{
       const i = +dot.dataset.i;
       crosshair.setAttribute('x1', x(i)); crosshair.setAttribute('x2', x(i)); crosshair.style.opacity=1;
       const rect = dot.getBoundingClientRect();
-      showTooltip(rect.left, rect.top, `<b>${data.labels[i]}</b>
-        <div class="tt-row"><span style="color:#7bdcb8">Portefeuille</span><span class="num">${data.portfolio[i].toFixed(1)}</span></div>
-        <div class="tt-row"><span style="color:#9cc7ea">BRVM Composite</span><span class="num">${data.index[i].toFixed(1)}</span></div>`);
+      showTooltip(rect.left, rect.top, `<b>${fmtDMY(D[i])}</b>
+        <div class="tt-row"><span style="color:#7bdcb8">Portefeuille</span><span class="num">${P[i].toFixed(1)}</span></div>
+        <div class="tt-row"><span style="color:#9cc7ea">BRVM Composite</span><span class="num">${B[i].toFixed(1)}</span></div>
+        <div class="tt-row"><span>Valeur</span><span class="num">${fmtFCFA(Vv[i])}</span></div>`);
     });
     dot.addEventListener('mouseleave', ()=>{ crosshair.style.opacity=0; hideTooltip(); });
   });
@@ -1082,27 +1232,31 @@ function renderWatchFeed(){
 }
 
 /* ---------- PORTFOLIO VIEW ---------- */
+function dayVar(t){ const m = MARKET.find(x=>x.ticker===t); return m ? m.varDay : 0; }
 function renderPortfolio(){
   const total = positions.reduce((s,p)=>s+posValue(p),0);
-  document.getElementById('portfolioSummary').textContent = positions.length+' positions · valeur totale '+fmtFCFA(total).replace(' FCFA',' FCFA');
+  const cost = positions.reduce((s,p)=>s+posCost(p),0), pl = total - cost;
+  document.getElementById('portfolioSummary').textContent = positions.length+' positions · valeur totale '+fmtFCFA(total)+' · '+(pl>=0?'+':'')+fmtFCFA(pl)+' ('+fmtPct(cost? pl/cost*100 : 0)+') depuis acquisition / référence';
+  document.getElementById('portfolioBaseNote').textContent = "Variations calculées depuis la date d'acquisition indiquée (ou la date de référence d'ouverture du suivi : "+fmtDMY(bcBaseDate())+"), au dernier cours de clôture"+(LATEST?" du "+fmtDMY(LATEST):"")+". Touche une valeur pour voir son historique de 3 mois.";
   document.getElementById('portfolioBody').innerHTML = positions.map((p,i)=>{
     const val = posValue(p), pl = posPl(p), plPct = posPlPct(p), weight = total? (val/total*100):0;
-    return `<tr>
-      <td><div class="name-cell"><span class="ticker-chip">${p.ticker}</span><div><div style="font-weight:700">${p.name}</div></div></div></td>
+    return `<tr class="row-link" data-open-pos="${esc(p.ticker)}">
+      <td><div class="name-cell"><span class="ticker-chip">${esc(p.ticker)}</span><div><div style="font-weight:700">${esc(p.name)}</div><div class="name-sub">depuis le ${fmtDMY(p.since||bcBaseDate())}</div></div></div></td>
       <td><span class="class-tag ${CLASS_TAGCLASS[p.cls]}">${p.cls}</span></td>
       <td class="t-right num">${p.qty}</td>
       <td class="t-right num">${fmtFCFA(p.reserve||0)}</td>
       <td class="t-right num">${fmtFCFA(p.pru)}</td>
-      <td class="t-right num">${fmtFCFA(p.cours)}</td>
+      <td class="t-right num">${fmtFCFA(p.cours)}<div>${deltaHtml(dayVar(p.ticker))}</div></td>
       <td class="t-right num">${fmtFCFA(val)}</td>
       <td class="t-right num ${pl>=0?'gainer':'loser'}">${pl>=0?'+':''}${fmtFCFA(pl)} <span style="font-size:10.5px">(${fmtPct(plPct)})</span></td>
       <td class="t-right num">${weight.toFixed(1)}%</td>
     </tr>`;
-  }).join('');
+  }).join('') || '<tr><td colspan="9" class="empty-hint">Aucune position. Clique sur « Nouvelle opération » pour enregistrer ton premier achat (avec sa date).</td></tr>';
   document.getElementById('portfolioCards').innerHTML = positions.map(p=>{
     const val = posValue(p), pl = posPl(p), plPct = posPlPct(p), weight = total? (val/total*100):0;
-    return '<div class="mrow"><div class="mrow-top"><div class="mrow-id"><span class="ticker-chip">'+p.ticker+'</span><div class="mrow-name">'+p.name+'</div></div><span class="class-tag '+CLASS_TAGCLASS[p.cls]+'">'+p.cls+'</span></div>'
-      + '<div class="mrow-grid"><div><small>Qte</small><strong class="num">'+p.qty+'</strong></div><div><small>Cours</small><strong class="num">'+fmtFCFA(p.cours)+'</strong></div><div><small>Valeur</small><strong class="num">'+fmtFCFA(val)+'</strong></div></div>'
+    return '<div class="mrow row-link" data-open-pos="'+esc(p.ticker)+'"><div class="mrow-top"><div class="mrow-id"><span class="ticker-chip">'+esc(p.ticker)+'</span><div class="mrow-name">'+esc(p.name)+'</div></div><span class="class-tag '+CLASS_TAGCLASS[p.cls]+'">'+p.cls+'</span></div>'
+      + '<div class="name-sub" style="margin:-4px 0 8px">depuis le '+fmtDMY(p.since||bcBaseDate())+' · PRU '+fmtFCFA(p.pru)+'</div>'
+      + '<div class="mrow-grid"><div><small>Qte</small><strong class="num">'+p.qty+'</strong></div><div><small>Cours</small><strong class="num">'+fmtFCFA(p.cours)+'</strong><span>'+deltaHtml(dayVar(p.ticker))+'</span></div><div><small>Valeur</small><strong class="num">'+fmtFCFA(val)+'</strong></div></div>'
       + '<div class="mrow-foot"><span style="color:var(--muted)">Poids '+weight.toFixed(1)+'%</span><span class="num '+(pl>=0?'gainer':'loser')+'">'+(pl>=0?'+':'')+fmtFCFA(pl)+' ('+fmtPct(plPct)+')</span></div></div>';
   }).join('') || '<p class="empty-hint">Aucune position pour le moment.</p>';
   renderCash(total);
@@ -1117,22 +1271,6 @@ function renderCash(portfolioValue){
     <div class="list-row"><div style="flex:1;font-weight:700;font-size:13px">Total général (titres + liquidités)</div><div class="num" style="font-weight:800;font-size:14px">${fmtFCFA(generalTotal)}</div></div>
   `;
 }
-document.getElementById('togglePosForm').addEventListener('click', ()=>{ document.getElementById('posForm').hidden = !document.getElementById('posForm').hidden; });
-document.getElementById('cancelPos').addEventListener('click', ()=>{ document.getElementById('posForm').hidden = true; });
-document.getElementById('savePos').addEventListener('click', ()=>{
-  const name = document.getElementById('pf-name').value.trim();
-  const ticker = document.getElementById('pf-ticker').value.trim().toUpperCase();
-  const cls = document.getElementById('pf-class').value;
-  const qty = parseFloat(document.getElementById('pf-qty').value)||0;
-  const pru = parseFloat(document.getElementById('pf-pru').value)||0;
-  const cours = parseFloat(document.getElementById('pf-cours').value)||pru;
-  if(!name || !ticker || !qty){ return; }
-  positions.push({ticker,name,cls,qty,pru,cours,reserve:0});
-  saveLS('bc_positions', positions);
-  ['pf-name','pf-ticker','pf-qty','pf-pru','pf-cours'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('posForm').hidden = true;
-  refreshAll();
-});
 document.getElementById('toggleCashForm').addEventListener('click', ()=>{
   document.getElementById('cash-reserved').value = cash.reserved||0;
   document.getElementById('cash-total').value = cash.total||0;
@@ -1155,7 +1293,7 @@ function renderMarket(filter){
   const rows = MARKET.filter(m=> !filter || m.name.toLowerCase().includes(filter) || m.ticker.toLowerCase().includes(filter));
   document.getElementById('marketBody').innerHTML = rows.map(m=>{
     const on = watchlist.includes(m.ticker);
-    return `<tr>
+    return `<tr class="row-link" data-open-pos="${m.ticker}">
       <td class="icon-cell"><button class="star-btn ${on?'on':''}" data-ticker="${m.ticker}">${on?ICN.star:ICN.starOutline}</button></td>
       <td><div class="name-cell"><span class="ticker-chip">${m.ticker}</span><div style="font-weight:700">${m.name}</div></div></td>
       <td class="t-right num">${fmtFCFA(m.cours)}</td>
@@ -1165,7 +1303,7 @@ function renderMarket(filter){
   }).join('') || '<tr><td colspan="5" class="empty-hint">Aucune valeur ne correspond à la recherche.</td></tr>';
   document.getElementById('marketCards').innerHTML = rows.map(m=>{
     const on = watchlist.includes(m.ticker);
-    return '<div class="mrow"><div class="mrow-top"><div class="mrow-id"><button class="star-btn '+(on?'on':'')+'" data-ticker="'+m.ticker+'" style="flex:none">'+(on?ICN.star:ICN.starOutline)+'</button><span class="ticker-chip">'+m.ticker+'</span><div class="mrow-name">'+m.name+'</div></div></div>'
+    return '<div class="mrow row-link" data-open-pos="'+m.ticker+'"><div class="mrow-top"><div class="mrow-id"><button class="star-btn '+(on?'on':'')+'" data-ticker="'+m.ticker+'" style="flex:none">'+(on?ICN.star:ICN.starOutline)+'</button><span class="ticker-chip">'+m.ticker+'</span><div class="mrow-name">'+m.name+'</div></div></div>'
       + '<div class="mrow-grid"><div><small>Cours</small><strong class="num">'+fmtFCFA(m.cours)+'</strong></div><div><small>Var. jour</small><strong>'+deltaHtml(m.varDay)+'</strong></div><div><small>Volume</small><strong class="num" style="color:var(--muted)">'+m.vol+'</strong></div></div></div>';
   }).join('') || '<p class="empty-hint">Aucune valeur ne correspond à la recherche.</p>';
   document.querySelectorAll('.star-btn').forEach(btn=>{
@@ -1256,7 +1394,25 @@ function renderReports(){
     const pct = c.cost? ((c.val-c.cost)/c.cost*100):0;
     return `<tr><td><span class="class-tag ${CLASS_TAGCLASS[cls]}">${cls}</span></td><td class="t-right num">${fmtFCFA(c.val)}</td><td class="t-right num">${(c.val/total*100).toFixed(1)}%</td><td class="t-right">${deltaHtml(pct)}</td></tr>`;
   }).join('');
-  document.getElementById('exportNote').textContent = "L'export CSV/PDF sera disponible dans la version connectée du service.";
+  document.getElementById('exportNote').textContent = "Export CSV : journal complet des opérations datées. Export PDF : bientôt disponible.";
+  renderPerfReport();
+}
+function renderPerfReport(){
+  const rows = positions.map(p=>{
+    const pl = posPl(p), plp = posPlPct(p);
+    return `<tr class="row-link" data-open-pos="${esc(p.ticker)}"><td><div class="name-cell"><span class="ticker-chip">${esc(p.ticker)}</span><div style="font-weight:700">${esc(p.name)}</div></div></td><td class="num">${fmtDMY(p.since||bcBaseDate())}</td><td class="t-right num">${fmtFCFA(p.pru)}</td><td class="t-right num">${fmtFCFA(p.cours)}</td><td class="t-right num ${pl>=0?'gainer':'loser'}">${pl>=0?'+':''}${fmtFCFA(pl)}</td><td class="t-right">${deltaHtml(plp)}</td><td class="t-right num">${fmtFCFA(LEDGER.dividendsBy[p.ticker]||0)}</td><td class="t-right num">${fmtFCFA(LEDGER.realizedBy[p.ticker]||0)}</td></tr>`;
+  });
+  const cost = positions.reduce((s,p)=>s+posCost(p),0), val = positions.reduce((s,p)=>s+posValue(p),0), pl = val-cost;
+  rows.push(`<tr><td colspan="4" style="font-weight:800">Total portefeuille</td><td class="t-right num ${pl>=0?'gainer':'loser'}">${pl>=0?'+':''}${fmtFCFA(pl)}</td><td class="t-right">${deltaHtml(cost? pl/cost*100 : 0)}</td><td class="t-right num">${fmtFCFA(LEDGER.dividends)}</td><td class="t-right num">${fmtFCFA(LEDGER.realized)}</td></tr>`);
+  document.getElementById('perfTableBody').innerHTML = positions.length ? rows.join('') : '<tr><td colspan="8" class="empty-hint">Aucune position à analyser.</td></tr>';
+  const el = document.getElementById('perfSummaryText');
+  if(!positions.length){ el.textContent = "Ajoute une opération pour démarrer le suivi de performance."; return; }
+  const sorted = positions.slice().sort((x,y)=>posPlPct(y)-posPlPct(x)), best = sorted[0], worst = sorted[sorted.length-1];
+  const pf = computePerf('base');
+  let txt = "Depuis la date d'acquisition ou de référence"+(LATEST?" et au cours du "+fmtDMY(LATEST):"")+", ton portefeuille vaut "+fmtFCFA(val)+" pour un coût de "+fmtFCFA(cost)+" : "+(pl>=0?'+':'')+fmtFCFA(pl)+" ("+fmtPct(cost? pl/cost*100:0)+"). ";
+  txt += "Meilleure valeur : "+best.name+" ("+fmtPct(posPlPct(best))+"). "+(sorted.length>1 ? "Plus faible : "+worst.name+" ("+fmtPct(posPlPct(worst))+"). " : "");
+  if(pf && !pf.empty){ const n = pf.portfolio.length-1; txt += "Rendement pondéré dans le temps sur la période : "+fmtPct(pf.portfolio[n]-100)+" contre "+fmtPct(pf.index[n]-100)+" pour l'indice BRVM Composite."; }
+  el.textContent = txt;
 }
 document.getElementById('exportCsv').addEventListener('click', e=>{ e.preventDefault(); });
 document.getElementById('exportPdf').addEventListener('click', e=>{ e.preventDefault(); });
@@ -1366,13 +1522,475 @@ document.getElementById('trialUpgradeBtn').addEventListener('click', ()=>{ windo
 document.getElementById('paywallPricingBtn').addEventListener('click', ()=>{ window.open(PRICING_URL, '_blank'); });
 document.getElementById('paywallUpgradeBtn').addEventListener('click', ()=>{ window.open(PRICING_URL, '_blank'); });
 
+/* ---------- JOURNAL D'OPÉRATIONS : achats, ventes, dividendes… (table bc_transactions) ---------- */
+const OP_LABEL = {achat:'Achat', vente:'Vente', dividende:'Dividende', ajustement:'Ajustement', initial:'Position initiale', depot:'Dépôt', retrait:'Retrait'};
+const OP_PILL = {achat:'pill-gain', vente:'pill-loss', dividende:'pill-warn', ajustement:'pill-info', initial:'pill-neutral', depot:'pill-gain', retrait:'pill-loss'};
+const CASH_TYPES = ['depot','retrait'];
+let ops = [];
+let PRICES = {};        /* ticker -> [[date, clôture], …] trié par date */
+let LEDGER = {positions:[], realized:0, realizedBy:{}, dividends:0, dividendsYear:0, dividendsBy:{}, bought:0, sold:0, bad:null};
+let LATEST = null;      /* dernière séance disponible */
+const RESERVE = {}, LEGACY_COURS = {};
+positions.forEach(p=>{ if(p.reserve) RESERVE[p.ticker] = p.reserve; LEGACY_COURS[p.ticker] = p.cours; });
+
+function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function todayStr(){ return ymd(new Date()); }
+function addDays(s, n){ const d = new Date(s+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+/* Base de suivi : 3 mois avant la création du compte */
+function bcBaseDate(){
+  const a = window.BC_ACCESS; const c = (a && a.created_at) ? new Date(a.created_at) : new Date();
+  c.setMonth(c.getMonth()-3); return ymd(c);
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function priceOn(t, d){
+  const a = PRICES[t]; if(!a || !a.length || d < a[0][0]) return null;
+  let lo = 0, hi = a.length-1;
+  while(lo < hi){ const mid = (lo+hi+1)>>1; if(a[mid][0] <= d) lo = mid; else hi = mid-1; }
+  return a[lo][1];
+}
+function priceDateOn(t, d){
+  const a = PRICES[t]; if(!a || !a.length || d < a[0][0]) return null;
+  let lo = 0, hi = a.length-1;
+  while(lo < hi){ const mid = (lo+hi+1)>>1; if(a[mid][0] <= d) lo = mid; else hi = mid-1; }
+  return a[lo][0];
+}
+function normOp(r){
+  return {id:r.id, user_id:r.user_id, op_date:String(r.op_date).slice(0,10), op_type:r.op_type, ticker:r.ticker||null, name:r.name||null, cls:r.cls||'Actions',
+    qty:Number(r.qty)||0, price:Number(r.price)||0, fees:Number(r.fees)||0, amount:Number(r.amount)||0, cash_applied:!!r.cash_applied, note:r.note||'',
+    created_at:r.created_at||'', updated_at:r.updated_at||''};
+}
+function ledgerSorted(list){
+  return (list||ops).slice().sort((a,b)=> a.op_date < b.op_date ? -1 : a.op_date > b.op_date ? 1 : (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0));
+}
+function applyQty(q, o){
+  if(!o.ticker) return;
+  if(o.op_type==='achat' || o.op_type==='initial' || o.op_type==='ajustement') q[o.ticker] = (q[o.ticker]||0) + o.qty;
+  else if(o.op_type==='vente') q[o.ticker] = (q[o.ticker]||0) - o.qty;
+}
+/* Rejoue le journal : quantités, PRU (moyenne pondérée), plus-values réalisées, dividendes */
+function replayLedger(list){
+  const st = {}; const res = {positions:[], realized:0, realizedBy:{}, dividends:0, dividendsYear:0, dividendsBy:{}, bought:0, sold:0, bad:null};
+  const year = String(new Date().getFullYear());
+  list.forEach(o=>{
+    if(CASH_TYPES.includes(o.op_type) || !o.ticker) return;
+    const t = o.ticker;
+    const s = st[t] = st[t] || {ticker:t, name:o.name||t, cls:o.cls||'Actions', qty:0, cost:0, since:o.op_date};
+    if(o.name) s.name = o.name; if(o.cls) s.cls = o.cls;
+    if(o.op_type==='achat' || o.op_type==='initial'){
+      if(s.qty <= 1e-9) s.since = o.op_date;
+      s.qty += o.qty; s.cost += o.qty*o.price + (o.fees||0);
+      if(o.op_type==='achat') res.bought += o.qty*o.price;
+    } else if(o.op_type==='vente'){
+      if(o.qty > s.qty + 1e-9 && !res.bad) res.bad = {op:o, held:s.qty};
+      const avg = s.qty > 0 ? s.cost/s.qty : 0;
+      const gain = (o.qty*o.price - (o.fees||0)) - avg*o.qty;
+      res.realized += gain; res.realizedBy[t] = (res.realizedBy[t]||0) + gain; res.sold += o.qty*o.price;
+      s.qty -= o.qty; s.cost -= avg*o.qty;
+    } else if(o.op_type==='ajustement'){
+      if(o.qty >= 0){ s.qty += o.qty; s.cost += o.qty*o.price; }
+      else { if(-o.qty > s.qty + 1e-9 && !res.bad) res.bad = {op:o, held:s.qty}; const avg = s.qty>0 ? s.cost/s.qty : 0; s.qty += o.qty; s.cost += o.qty*avg; }
+    } else if(o.op_type==='dividende'){
+      const amt = o.qty*o.price; res.dividends += amt; res.dividendsBy[t] = (res.dividendsBy[t]||0) + amt;
+      if(o.op_date.slice(0,4) === year) res.dividendsYear += amt;
+    }
+  });
+  Object.values(st).forEach(s=>{
+    if(s.qty > 1e-9){
+      const pru = s.cost / s.qty;
+      const m = MARKET.find(x=>x.ticker===s.ticker);
+      res.positions.push({ticker:s.ticker, name:s.name, cls:s.cls, qty:s.qty, pru:pru, since:s.since, cours: m ? m.cours : (LEGACY_COURS[s.ticker] || pru), reserve: RESERVE[s.ticker]||0});
+    }
+  });
+  res.positions.sort((a,b)=> (b.qty*b.cours) - (a.qty*a.cours));
+  return res;
+}
+function bcRecompute(){
+  LEDGER = replayLedger(ledgerSorted());
+  positions = LEDGER.positions;
+  saveLS('bc_positions', positions);
+  positions.forEach(p=>{ if(!watchlist.includes(p.ticker)) watchlist.push(p.ticker); });
+  saveLS('bc_watchlist', watchlist);
+}
+function heldAt(ticker, date, list){
+  const q = {}; ledgerSorted(list).forEach(o=>{ if(o.op_date <= date) applyQty(q, o); }); return q[ticker]||0;
+}
+
+/* ----- cours historiques ----- */
+async function bcLoadPrices(){
+  const need = addDays(todayStr(), -100);
+  let since = bcBaseDate() < need ? bcBaseDate() : need;
+  const opsMin = ops.length ? ledgerSorted()[0].op_date : since;
+  if(opsMin < since) since = opsMin;
+  since = addDays(since, -10);
+  const floor = addDays(todayStr(), -420); if(since < floor) since = floor;
+  let all = [], from = 0;
+  for(;;){
+    const r = await SB.from('bc_prices').select('ticker,d,close,volume').gte('d', since).order('d',{ascending:true}).order('ticker',{ascending:true}).range(from, from+999);
+    if(r.error) throw r.error;
+    all = all.concat(r.data);
+    if(r.data.length < 1000) break;
+    from += 1000;
+  }
+  const P = {}, V = {};
+  all.forEach(x=>{ (P[x.ticker] = P[x.ticker] || []).push([x.d, Number(x.close)]); (V[x.ticker] = V[x.ticker] || {})[x.d] = x.volume; });
+  PRICES = P;
+  const idx = P['BRVMC'];
+  LATEST = idx && idx.length ? idx[idx.length-1][0] : null;
+  if(LATEST){
+    MARKET.forEach(m=>{
+      const a = P[m.ticker]; if(!a || !a.length) return;
+      const last = a[a.length-1];
+      m.cours = last[1];
+      if(last[0] === LATEST && a.length > 1){ const prev = a[a.length-2][1]; m.varDay = prev ? Math.round((last[1]/prev-1)*10000)/100 : 0; const v = V[m.ticker] && V[m.ticker][LATEST]; m.vol = v ? Number(v).toLocaleString('fr-FR') : '—'; }
+      else { m.varDay = 0; m.vol = '—'; }
+    });
+    const fs = document.getElementById('footSession'); if(fs) fs.textContent = 'Séance BRVM · cours réels du ' + fmtDMY(LATEST);
+  }
+}
+
+/* ----- lecture / migration du journal ----- */
+async function bcLoadLedger(){
+  const r = await SB.from('bc_transactions').select('*').order('op_date',{ascending:true}).order('created_at',{ascending:true});
+  if(r.error) throw r.error;
+  ops = (r.data||[]).map(normOp);
+  if(!ops.length && !loadLS('bc_migrated', false) && positions.length){
+    /* Portefeuille existant : chaque position devient une « position initiale » à la date de base (3 mois avant la création du compte) */
+    const base = bcBaseDate();
+    /* Si le PRU enregistré n'a jamais été renseigné (PRU = cours du jour), le prix de référence est le cours de clôture à la date de base : la variation se mesure alors depuis cette date. */
+    const rows = positions.map(p=>{
+      const placeholder = LEGACY_COURS[p.ticker] != null && Math.abs(p.pru - LEGACY_COURS[p.ticker]) < 1e-9;
+      const ref = placeholder ? priceOn(p.ticker, base) : null;
+      return {user_id:BC_UID, op_date:base, op_type:'initial', ticker:p.ticker, name:p.name, cls:p.cls, qty:p.qty, price:(ref != null ? ref : p.pru), fees:0, amount:0, cash_applied:false,
+        note: ref != null ? "Prix de référence = cours de clôture au "+fmtDMY(priceDateOn(p.ticker, base))+" (date de référence d'ouverture du suivi) — modifiable" : "Solde d'ouverture repris du portefeuille existant"};
+    });
+    const ins = await SB.from('bc_transactions').insert(rows).select();
+    if(!ins.error){ ops = ins.data.map(normOp); saveLS('bc_migrated', true); }
+  } else if(ops.length){ saveLS('bc_migrated', true); }
+}
+
+/* ----- formulaire d'opération ----- */
+const opEl = id => document.getElementById(id);
+let editingOp = null;
+function opCashEffect(type, qty, price, fees){
+  if(type==='achat') return -(qty*price + fees);
+  if(type==='vente') return qty*price - fees;
+  if(type==='dividende') return qty*price;
+  if(type==='depot') return price;
+  if(type==='retrait') return -price;
+  return 0;
+}
+function fillTickerList(){
+  const seen = new Set(); let h = '';
+  MARKET.forEach(m=>{ seen.add(m.ticker); h += '<option value="'+m.ticker+'">'+esc(m.name)+'</option>'; });
+  positions.forEach(p=>{ if(!seen.has(p.ticker)) h += '<option value="'+esc(p.ticker)+'">'+esc(p.name)+'</option>'; });
+  opEl('op-tickers').innerHTML = h;
+}
+function opLayout(){
+  const t = opEl('op-type').value;
+  const isCash = CASH_TYPES.includes(t);
+  document.querySelectorAll('.op-sec').forEach(el=>{ el.hidden = isCash; });
+  opEl('op-fees').closest('.field').hidden = !(t==='achat' || t==='vente');
+  opEl('op-cls').closest('.field').hidden = isCash || t==='dividende';
+  opEl('op-qty').closest('.field').hidden = isCash;
+  opEl('op-cash-l').hidden = (t==='initial' || t==='ajustement');
+  opEl('op-qty-l').textContent = t==='dividende' ? "Nombre d'actions concernées" : (t==='ajustement' ? 'Variation de quantité (− pour retirer)' : 'Quantité');
+  opEl('op-price-l').textContent = isCash ? 'Montant (FCFA)' : (t==='dividende' ? 'Dividende net par action (FCFA)' : (t==='initial' ? 'PRU / prix de revient (FCFA)' : (t==='ajustement' ? 'Prix de revient unitaire (FCFA, 0 si gratuit)' : 'Prix unitaire (FCFA)')));
+  opUpdateHints();
+}
+function opUpdateHints(){
+  const t = opEl('op-type').value, tk = opEl('op-ticker').value.trim().toUpperCase(), d = opEl('op-date').value;
+  let hint = '';
+  if(!CASH_TYPES.includes(t) && tk && d && PRICES[tk]){
+    const p = priceOn(tk, d);
+    if(p != null) hint = 'Cours de clôture au '+fmtDMY(d)+' (dernière séance connue) : <b>'+fmtFCFA(p)+'</b> · <button type="button" id="opUsePrice">utiliser ce cours</button>';
+    else hint = "Pas de cours BRVM disponible à cette date pour "+esc(tk)+" (avant le début de l'historique) : saisis le prix réel.";
+  }
+  opEl('op-hint').innerHTML = hint;
+  const u = document.getElementById('opUsePrice'); if(u) u.addEventListener('click', ()=>{ opEl('op-price').value = priceOn(tk, d); opUpdateHints(); });
+  const qty = parseFloat(opEl('op-qty').value)||0, price = parseFloat(opEl('op-price').value)||0, fees = parseFloat(opEl('op-fees').value)||0;
+  let tot = '';
+  if(t==='achat') tot = 'Coût total (frais inclus) : <b>'+fmtFCFA(qty*price+fees)+'</b>';
+  else if(t==='vente') tot = 'Produit net (frais déduits) : <b>'+fmtFCFA(qty*price-fees)+'</b>';
+  else if(t==='dividende') tot = 'Dividende total encaissé : <b>'+fmtFCFA(qty*price)+'</b>';
+  else if(t==='initial') tot = 'Valeur de revient : <b>'+fmtFCFA(qty*price)+'</b>';
+  opEl('op-total').innerHTML = tot;
+}
+function openOpForm(o){
+  o = o || {};
+  editingOp = o.op || null;
+  const src = editingOp || {op_type:o.type||'achat', op_date:o.date||todayStr(), ticker:o.ticker||'', name:'', cls:'Actions', qty:'', price:'', fees:'', note:'', cash_applied:true};
+  fillTickerList();
+  opEl('opTitle').textContent = editingOp ? "Modifier l'opération" : 'Nouvelle opération';
+  opEl('op-type').value = src.op_type;
+  opEl('op-date').value = src.op_date; opEl('op-date').max = todayStr();
+  opEl('op-ticker').value = src.ticker || '';
+  const m = MARKET.find(x=>x.ticker===(src.ticker||'')); const pp = positions.find(x=>x.ticker===(src.ticker||''));
+  opEl('op-name').value = src.name || (m ? m.name : (pp ? pp.name : ''));
+  opEl('op-cls').value = src.cls || 'Actions';
+  opEl('op-qty').value = CASH_TYPES.includes(src.op_type) ? '' : (src.qty===0 ? '' : src.qty);
+  opEl('op-price').value = src.price===0 ? '' : src.price;
+  opEl('op-fees').value = src.fees ? src.fees : '';
+  opEl('op-note').value = src.note || '';
+  opEl('op-cash').checked = editingOp ? !!editingOp.cash_applied : true;
+  opEl('op-msg').textContent = '';
+  opEl('opSave').disabled = false;
+  opLayout();
+  if(!editingOp && o.ticker){ const p = priceOn(o.ticker, opEl('op-date').value); if(p != null && !opEl('op-price').value){ opEl('op-price').value = p; opUpdateHints(); } }
+  opEl('opOverlay').hidden = false;
+}
+function closeOpForm(){ opEl('opOverlay').hidden = true; editingOp = null; }
+async function saveOp(){
+  const msg = opEl('op-msg'); msg.textContent = '';
+  const type = opEl('op-type').value, date = opEl('op-date').value;
+  const isCash = CASH_TYPES.includes(type);
+  let ticker = opEl('op-ticker').value.trim().toUpperCase();
+  let name = opEl('op-name').value.trim();
+  const cls = opEl('op-cls').value;
+  let qty = parseFloat(opEl('op-qty').value);
+  const price = parseFloat(opEl('op-price').value);
+  const fees = (type==='achat' || type==='vente') ? (parseFloat(opEl('op-fees').value)||0) : 0;
+  const note = opEl('op-note').value.trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ msg.textContent = "Indique la date de l'opération."; return; }
+  if(date > todayStr()){ msg.textContent = "La date ne peut pas être dans le futur."; return; }
+  if(isCash){ qty = 1; ticker = null; name = null; }
+  else {
+    if(!/^[A-Z0-9.\-]{2,12}$/.test(ticker)){ msg.textContent = 'Indique le ticker de la valeur (ex. SNTS).'; return; }
+    const m = MARKET.find(x=>x.ticker===ticker); if(!name) name = m ? m.name : ticker;
+    if(!isFinite(qty) || qty === 0 || (qty < 0 && type !== 'ajustement')){ msg.textContent = type==='ajustement' ? 'Indique la variation de quantité (positive ou négative).' : 'Indique une quantité supérieure à zéro.'; return; }
+  }
+  if(!isFinite(price) || price < 0 || ((type!=='ajustement') && price === 0)){ msg.textContent = isCash ? 'Indique un montant supérieur à zéro.' : 'Indique un prix supérieur à zéro.'; return; }
+  const amount = opCashEffect(type, qty, price, fees);
+  const row = {op_date:date, op_type:type, ticker, name, cls: (isCash||type==='dividende') ? 'Actions' : cls, qty, price, fees, amount, cash_applied: (!(type==='initial'||type==='ajustement') && opEl('op-cash').checked && amount !== 0), note: note || null};
+  /* cohérence : jamais de quantité négative, à aucune date */
+  const trial = ops.filter(x=>!editingOp || x.id !== editingOp.id).concat([Object.assign({id:'tmp', created_at:'~'}, row)]);
+  const chk = replayLedger(ledgerSorted(trial));
+  if(chk.bad){ msg.textContent = 'Opération impossible : la quantité dépasse celle détenue le '+fmtDMY(chk.bad.op.op_date)+' ('+(Math.round(chk.bad.held*100)/100)+' détenue(s) pour '+chk.bad.op.ticker+').'; return; }
+  opEl('opSave').disabled = true;
+  try{
+    let saved;
+    if(editingOp){
+      const r = await SB.from('bc_transactions').update(row).eq('id', editingOp.id).select().single();
+      if(r.error) throw r.error; saved = normOp(r.data);
+    } else {
+      const r = await SB.from('bc_transactions').insert(Object.assign({user_id:BC_UID}, row)).select().single();
+      if(r.error) throw r.error; saved = normOp(r.data);
+    }
+    let delta = 0;
+    if(editingOp && editingOp.cash_applied) delta -= editingOp.amount;
+    if(saved.cash_applied) delta += saved.amount;
+    if(delta !== 0){ cash = {reserved:cash.reserved||0, total:(cash.total||0) + delta}; saveLS('bc_cash', cash); }
+    if(editingOp) ops = ops.map(x=>x.id===saved.id ? saved : x); else ops.push(saved);
+    bcRecompute();
+    closeOpForm();
+    refreshAll();
+    if(!opEl('posOverlay').hidden && posOpen) openPos(posOpen);
+  }catch(e){
+    msg.textContent = "Enregistrement impossible : " + (e && e.message ? e.message : 'erreur réseau') + '.'; opEl('opSave').disabled = false;
+  }
+}
+async function deleteOp(id){
+  const o = ops.find(x=>x.id===id); if(!o) return;
+  const chk = replayLedger(ledgerSorted(ops.filter(x=>x.id!==id)));
+  if(chk.bad){ alert("Suppression impossible : des opérations ultérieures dépendent de celle-ci (une vente dépasserait la quantité détenue le "+fmtDMY(chk.bad.op.op_date)+")."); return; }
+  if(!confirm('Supprimer cette opération ('+OP_LABEL[o.op_type]+' du '+fmtDMY(o.op_date)+(o.ticker?' · '+o.ticker:'')+') ?\nLa suppression est conservée dans le suivi des modifications.')) return;
+  const r = await SB.from('bc_transactions').delete().eq('id', id);
+  if(r.error){ alert('Suppression impossible : '+r.error.message); return; }
+  if(o.cash_applied){ cash = {reserved:cash.reserved||0, total:(cash.total||0) - o.amount}; saveLS('bc_cash', cash); }
+  ops = ops.filter(x=>x.id!==id);
+  bcRecompute(); refreshAll();
+  if(!opEl('posOverlay').hidden && posOpen) openPos(posOpen);
+}
+['op-type'].forEach(id=>opEl(id).addEventListener('change', ()=>{ opLayout(); }));
+['op-date','op-qty','op-price','op-fees'].forEach(id=>opEl(id).addEventListener('input', opUpdateHints));
+opEl('op-ticker').addEventListener('input', ()=>{
+  const tk = opEl('op-ticker').value.trim().toUpperCase();
+  const m = MARKET.find(x=>x.ticker===tk); const pp = positions.find(x=>x.ticker===tk);
+  if(m){ opEl('op-name').value = m.name; opEl('op-cls').value = 'Actions'; }
+  else if(pp){ opEl('op-name').value = pp.name; opEl('op-cls').value = pp.cls; }
+  opUpdateHints();
+});
+opEl('opSave').addEventListener('click', saveOp);
+opEl('opCancel').addEventListener('click', closeOpForm);
+opEl('opClose').addEventListener('click', closeOpForm);
+opEl('opOverlay').addEventListener('click', e=>{ if(e.target === opEl('opOverlay')) closeOpForm(); });
+document.getElementById('togglePosForm').addEventListener('click', ()=>openOpForm());
+document.getElementById('histNewOp').addEventListener('click', ()=>openOpForm());
+
+/* ----- fiche d'une valeur : historique récent (3 mois) + opérations liées ----- */
+let posOpen = null;
+function openPos(ticker){
+  posOpen = ticker;
+  const m = MARKET.find(x=>x.ticker===ticker), p = positions.find(x=>x.ticker===ticker);
+  const tOps = ledgerSorted().filter(o=>o.ticker===ticker);
+  const name = (p && p.name) || (m && m.name) || (tOps[0] && tOps[0].name) || ticker;
+  opEl('posTitle').innerHTML = '<span class="ticker-chip">'+esc(ticker)+'</span> '+esc(name);
+  const all = PRICES[ticker] || [];
+  const from = LATEST ? addDays(LATEST, -91) : '0000-00-00';
+  const S = all.filter(r=>r[0] >= from);
+  opEl('posSub').textContent = S.length ? ('Historique du '+fmtDMY(S[0][0])+' au '+fmtDMY(S[S.length-1][0])+' · cours de clôture') : 'Historique de cours indisponible pour cette valeur';
+  let h = '';
+  if(S.length){
+    const last = S[S.length-1][1], first = S[0][1];
+    const hi = Math.max(...S.map(r=>r[1])), lo = Math.min(...S.map(r=>r[1]));
+    const day = m ? m.varDay : 0;
+    h += '<div class="stat-grid"><div><small>Cours</small><strong class="num">'+fmtFCFA(last)+'</strong></div><div><small>Var. séance</small><strong>'+deltaHtml(day)+'</strong></div><div><small>Var. 3 mois</small><strong>'+deltaHtml(first ? (last/first-1)*100 : 0)+'</strong></div><div><small>Plus haut / bas 3 m</small><strong class="num" style="font-size:11.5px">'+fmtFCFA(hi).replace(' FCFA','')+' / '+fmtFCFA(lo).replace(' FCFA','')+'</strong></div></div>';
+    h += '<svg id="posChart" viewBox="0 0 700 220" style="width:100%;height:220px;overflow:visible;touch-action:none"></svg><div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--c-actions)"></span>Cours de clôture</span><span class="legend-item">▲ achat · ▼ vente · ● dividende / position initiale</span></div>';
+  } else h += '<p class="empty-hint">Aucun historique de cours BRVM n\'est disponible pour cette valeur (titre hors actions BRVM ou pas encore coté).</p>';
+  if(p){
+    const val = posValue(p), pl = posPl(p), plp = posPlPct(p), rz = LEDGER.realizedBy[ticker]||0, dv = LEDGER.dividendsBy[ticker]||0;
+    h += '<div class="stat-grid"><div><small>Ma quantité</small><strong class="num">'+p.qty+'</strong></div><div><small>PRU</small><strong class="num">'+fmtFCFA(p.pru)+'</strong></div><div><small>Valeur</small><strong class="num">'+fmtFCFA(val)+'</strong></div><div><small>+/- value latente</small><strong class="num '+(pl>=0?'gainer':'loser')+'">'+(pl>=0?'+':'')+fmtFCFA(pl)+' ('+fmtPct(plp)+')</strong></div></div>';
+    if(rz || dv) h += '<div class="link-hint" style="margin-bottom:8px">+/- value réalisée sur cette valeur : <b class="num '+(rz>=0?'gainer':'loser')+'">'+(rz>=0?'+':'')+fmtFCFA(rz)+'</b> · dividendes encaissés : <b class="num">'+fmtFCFA(dv)+'</b></div>';
+  } else if(tOps.length){
+    const rz = LEDGER.realizedBy[ticker]||0, dv = LEDGER.dividendsBy[ticker]||0;
+    h += '<div class="link-hint" style="margin:8px 0">Position soldée · +/- value réalisée : <b class="num '+(rz>=0?'gainer':'loser')+'">'+(rz>=0?'+':'')+fmtFCFA(rz)+'</b> · dividendes encaissés : <b class="num">'+fmtFCFA(dv)+'</b></div>';
+  } else h += '<div class="link-hint" style="margin:8px 0">Tu ne détiens pas cette valeur.</div>';
+  h += '<div style="display:flex;gap:8px;margin:8px 0 14px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" id="posBuy">Acheter</button>'+(p?'<button class="btn btn-ghost btn-sm" id="posSell">Vendre</button><button class="btn btn-ghost btn-sm" id="posDiv">Enregistrer un dividende</button>':'')+'</div>';
+  h += '<h2 style="font-size:13.5px;margin-bottom:8px">Mes opérations sur cette valeur</h2>';
+  if(tOps.length){
+    h += '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Opération</th><th class="t-right">Qté</th><th class="t-right">Prix</th><th class="t-right">Montant</th></tr></thead><tbody>'
+      + tOps.slice().reverse().map(o=>'<tr><td class="num">'+fmtDMY(o.op_date)+'</td><td><span class="pill '+OP_PILL[o.op_type]+'">'+OP_LABEL[o.op_type]+'</span></td><td class="t-right num">'+o.qty+'</td><td class="t-right num">'+fmtFCFA(o.price)+'</td><td class="t-right num">'+(o.amount? (o.amount>0?'+':'')+fmtFCFA(o.amount) : '—')+'</td></tr>').join('')
+      + '</tbody></table></div>';
+  } else h += '<p class="empty-hint">Aucune opération enregistrée sur cette valeur.</p>';
+  opEl('posBody').innerHTML = h;
+  opEl('posOverlay').hidden = false;
+  const b = document.getElementById('posBuy'); if(b) b.addEventListener('click', ()=>{ opEl('posOverlay').hidden = true; openOpForm({type:'achat', ticker}); });
+  const s = document.getElementById('posSell'); if(s) s.addEventListener('click', ()=>{ opEl('posOverlay').hidden = true; openOpForm({type:'vente', ticker}); });
+  const dd = document.getElementById('posDiv'); if(dd) dd.addEventListener('click', ()=>{ opEl('posOverlay').hidden = true; openOpForm({type:'dividende', ticker}); });
+  if(S.length) drawPosChart(S, tOps);
+}
+function closePos(){ opEl('posOverlay').hidden = true; posOpen = null; hideTooltip(); }
+function drawPosChart(S, tOps){
+  const svg = document.getElementById('posChart'); if(!svg) return;
+  const W=700,H=220,padL=52,padR=10,padT=14,padB=26, n=S.length;
+  let min = Math.min(...S.map(r=>r[1])), max = Math.max(...S.map(r=>r[1]));
+  if(max === min){ min -= 1; max += 1; }
+  const pad = (max-min)*0.06; min -= pad; max += pad;
+  const x = i => padL + (n>1 ? i/(n-1) : 0.5)*(W-padL-padR);
+  const y = v => padT + (1-(v-min)/(max-min))*(H-padT-padB);
+  const path = S.map((r,i)=>(i===0?'M':'L')+x(i).toFixed(1)+','+y(r[1]).toFixed(1)).join(' ');
+  const grid = [0,1,2,3].map(i=>{ const yy = padT + i*((H-padT-padB)/3), val = max - i*((max-min)/3); return '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+yy.toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="var(--line)"/><text x="'+(padL-8)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end" font-size="9.5" fill="var(--muted)" font-family="IBM Plex Mono, monospace">'+Math.round(val).toLocaleString('fr-FR')+'</text>'; }).join('');
+  const nt = Math.min(5, n); const ticks = []; for(let k=0;k<nt;k++) ticks.push(Math.round(k*(n-1)/Math.max(1,nt-1)));
+  const xl = [...new Set(ticks)].map(i=>'<text x="'+x(i).toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+(i===0?'start':(i===n-1?'end':'middle'))+'" font-size="9.5" fill="var(--muted)" font-family="IBM Plex Mono, monospace">'+fmtDM(S[i][0])+'</text>').join('');
+  let marks = '';
+  tOps.forEach(o=>{
+    if(!['achat','vente','dividende','initial','ajustement'].includes(o.op_type)) return;
+    if(o.op_date < S[0][0]) return;
+    let k = 0; for(let i=0;i<n;i++){ if(S[i][0] <= o.op_date) k = i; }
+    const cx = x(k), cy = y(S[k][1]);
+    const col = o.op_type==='vente' ? 'var(--loss)' : (o.op_type==='dividende' ? 'var(--c-opcvm)' : 'var(--c-actions)');
+    if(o.op_type==='vente') marks += '<path d="M'+(cx-6)+','+(cy-11)+' L'+(cx+6)+','+(cy-11)+' L'+cx+','+(cy-2)+' Z" fill="'+col+'" stroke="var(--surface)" stroke-width="1"/>';
+    else if(o.op_type==='dividende' || o.op_type==='initial') marks += '<circle cx="'+cx+'" cy="'+cy+'" r="4.5" fill="'+col+'" stroke="var(--surface)" stroke-width="1.5"/>';
+    else marks += '<path d="M'+(cx-6)+','+(cy+11)+' L'+(cx+6)+','+(cy+11)+' L'+cx+','+(cy+2)+' Z" fill="'+col+'" stroke="var(--surface)" stroke-width="1"/>';
+  });
+  svg.innerHTML = '<defs><linearGradient id="posFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--c-actions)" stop-opacity="0.2"/><stop offset="100%" stop-color="var(--c-actions)" stop-opacity="0"/></linearGradient></defs>'
+    + grid + xl + '<path d="'+path+' L '+x(n-1).toFixed(1)+','+(H-padB)+' L '+x(0).toFixed(1)+','+(H-padB)+' Z" fill="url(#posFill)"/><path d="'+path+'" fill="none" stroke="var(--c-actions)" stroke-width="2.2"/>'
+    + marks + '<line id="posCross" x1="0" x2="0" y1="'+padT+'" y2="'+(H-padB)+'" stroke="var(--faint)" style="opacity:0"/><rect id="posHit" x="'+padL+'" y="0" width="'+(W-padL-padR)+'" height="'+H+'" fill="transparent"/>';
+  const hit = svg.querySelector('#posHit'), cross = svg.querySelector('#posCross');
+  function move(ev){
+    const r = svg.getBoundingClientRect(); const px = ((ev.clientX - r.left)/r.width)*W;
+    let i = Math.round(((px-padL)/(W-padL-padR))*(n-1)); i = Math.max(0, Math.min(n-1, i));
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.style.opacity = 1;
+    const d = S[i][0]; const dayOps = tOps.filter(o=>o.op_date===d);
+    showTooltip(ev.clientX, ev.clientY, '<b>'+fmtDMY(d)+'</b><div class="tt-row"><span>Clôture</span><span class="num">'+fmtFCFA(S[i][1])+'</span></div>'+dayOps.map(o=>'<div class="tt-row"><span>'+OP_LABEL[o.op_type]+'</span><span class="num">'+o.qty+' × '+fmtFCFA(o.price)+'</span></div>').join(''));
+  }
+  hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', ()=>{ cross.style.opacity = 0; hideTooltip(); });
+}
+opEl('posClose').addEventListener('click', closePos);
+opEl('posOverlay').addEventListener('click', e=>{ if(e.target === opEl('posOverlay')) closePos(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if(!opEl('opOverlay').hidden) closeOpForm(); else if(!opEl('posOverlay').hidden) closePos(); } });
+document.addEventListener('click', e=>{
+  if(e.target.closest('.star-btn') || e.target.closest('button')) return;
+  const el = e.target.closest('[data-open-pos]'); if(el) openPos(el.dataset.openPos);
+});
+
+/* ----- vue « Historique » : journal + suivi des modifications ----- */
+function opAmountHtml(o){
+  if(o.op_type==='initial' || o.op_type==='ajustement') return '<span style="color:var(--muted)">—</span>';
+  return '<span class="num '+(o.amount>=0?'gainer':'loser')+'">'+(o.amount>=0?'+':'')+fmtFCFA(o.amount)+'</span>';
+}
+function renderHistory(){
+  const list = ledgerSorted().reverse();
+  document.getElementById('histKpis').innerHTML = [
+    {l:'Achats cumulés', v:fmtFCFA(LEDGER.bought), s: ops.filter(o=>o.op_type==='achat').length+' opération(s)'},
+    {l:'Ventes cumulées', v:fmtFCFA(LEDGER.sold), s: ops.filter(o=>o.op_type==='vente').length+' opération(s)'},
+    {l:'+/- values réalisées', v:(LEDGER.realized>=0?'+':'')+fmtFCFA(LEDGER.realized), s:'sur les ventes enregistrées', cls: LEDGER.realized>=0?'gainer':'loser'},
+    {l:'Dividendes encaissés', v:fmtFCFA(LEDGER.dividends), s:fmtFCFA(LEDGER.dividendsYear)+' en '+new Date().getFullYear()}
+  ].map(c=>'<div class="card kpi"><small>'+c.l+'</small><strong class="num '+(c.cls||'')+'">'+c.v+'</strong><div style="color:var(--muted);font-size:10.5px;margin-top:7px">'+c.s+'</div></div>').join('');
+  document.getElementById('histBaseNote').textContent = ops.length + ' opération(s) · base de suivi : 3 mois avant la création du compte (depuis le '+fmtDMY(bcBaseDate())+')';
+  const ft = document.getElementById('histType').value, fk = document.getElementById('histTicker').value.trim().toUpperCase();
+  const rows = list.filter(o=>(!ft || o.op_type===ft) && (!fk || (o.ticker||'').includes(fk)));
+  const act = o => '<div class="act-btns"><button class="btn btn-ghost btn-sm" data-edit-op="'+o.id+'">Modifier</button><button class="btn btn-ghost btn-sm" data-del-op="'+o.id+'">Supprimer</button></div>';
+  document.getElementById('histBody').innerHTML = rows.map(o=>'<tr>'
+    + '<td class="num">'+fmtDMY(o.op_date)+'</td>'
+    + '<td><span class="pill '+OP_PILL[o.op_type]+'">'+OP_LABEL[o.op_type]+'</span></td>'
+    + '<td>'+(o.ticker ? '<div class="name-cell" data-open-pos="'+esc(o.ticker)+'" style="cursor:pointer"><span class="ticker-chip">'+esc(o.ticker)+'</span><div style="font-weight:600">'+esc(o.name||'')+'</div></div>' : '<span style="color:var(--muted)">Liquidités</span>')+(o.note?'<div class="name-sub">'+esc(o.note)+'</div>':'')+'</td>'
+    + '<td class="t-right num">'+(o.ticker ? o.qty : '—')+'</td>'
+    + '<td class="t-right num">'+(o.ticker ? fmtFCFA(o.price) : '—')+'</td>'
+    + '<td class="t-right num">'+(o.fees ? fmtFCFA(o.fees) : '—')+'</td>'
+    + '<td class="t-right">'+opAmountHtml(o)+'</td><td>'+act(o)+'</td></tr>').join('')
+    || '<tr><td colspan="8" class="empty-hint">Aucune opération. Utilise « Nouvelle opération » pour enregistrer un achat, une vente ou un dividende avec sa date.</td></tr>';
+  document.getElementById('histCards').innerHTML = rows.map(o=>'<div class="mrow"><div class="mrow-top"><div class="mrow-id"><span class="pill '+OP_PILL[o.op_type]+'">'+OP_LABEL[o.op_type]+'</span>'+(o.ticker?'<span class="ticker-chip" data-open-pos="'+esc(o.ticker)+'" style="cursor:pointer">'+esc(o.ticker)+'</span>':'<span class="mrow-name">Liquidités</span>')+'</div><span class="num" style="font-size:12px;color:var(--muted)">'+fmtDMY(o.op_date)+'</span></div>'
+    + '<div class="mrow-grid"><div><small>Qté</small><strong class="num">'+(o.ticker?o.qty:'—')+'</strong></div><div><small>Prix</small><strong class="num">'+(o.ticker?fmtFCFA(o.price):'—')+'</strong></div><div><small>Montant</small><strong>'+opAmountHtml(o)+'</strong></div></div>'
+    + '<div class="mrow-foot"><span style="color:var(--muted)">'+esc(o.note||'')+'</span>'+act(o)+'</div></div>').join('') || '<p class="empty-hint">Aucune opération.</p>';
+}
+document.getElementById('histType').addEventListener('change', renderHistory);
+document.getElementById('histTicker').addEventListener('input', renderHistory);
+document.getElementById('view-history').addEventListener('click', e=>{
+  const ed = e.target.closest('[data-edit-op]'); if(ed){ const o = ops.find(x=>x.id===ed.dataset.editOp); if(o) openOpForm({op:o}); return; }
+  const del = e.target.closest('[data-del-op]'); if(del){ deleteOp(del.dataset.delOp); }
+});
+const AUDIT_FIELDS = {op_date:'date', op_type:'type', ticker:'valeur', qty:'quantité', price:'prix', fees:'frais', note:'note'};
+function auditSummary(a){
+  const r = a.new_row || a.old_row || {};
+  const base = (OP_LABEL[r.op_type]||r.op_type) + (r.ticker ? ' '+r.ticker : '') + ' — '+fmtDMY(String(r.op_date||'').slice(0,10)) + (r.ticker ? ' · '+r.qty+' × '+fmtFCFA(Number(r.price)||0) : ' · '+fmtFCFA(Number(r.price)||0));
+  if(a.action !== 'modification' || !a.old_row || !a.new_row) return base;
+  const diffs = Object.keys(AUDIT_FIELDS).filter(k=>String(a.old_row[k]??'') !== String(a.new_row[k]??'')).map(k=>AUDIT_FIELDS[k]+' : '+esc(String(a.old_row[k]??'—'))+' → '+esc(String(a.new_row[k]??'—')));
+  return base + (diffs.length ? '<div class="name-sub">'+diffs.join(' · ')+'</div>' : '');
+}
+async function renderAudit(){
+  const box = document.getElementById('auditList'); if(!box) return;
+  const r = await SB.from('bc_transactions_audit').select('*').order('changed_at',{ascending:false}).limit(80);
+  if(r.error){ box.innerHTML = '<p class="empty-hint">Suivi indisponible pour le moment.</p>'; return; }
+  const pill = {creation:'pill-gain', modification:'pill-warn', suppression:'pill-loss'};
+  const lab = {creation:'Ajout', modification:'Modification', suppression:'Suppression'};
+  box.innerHTML = r.data.length ? r.data.map(a=>{ const dt = new Date(a.changed_at);
+    return '<div class="audit-row"><div class="audit-when">'+dt.toLocaleDateString('fr-FR')+'<br>'+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div><div style="flex:1"><span class="pill '+pill[a.action]+'">'+lab[a.action]+'</span> <span style="font-weight:600">'+auditSummary(a)+'</span></div></div>'; }).join('')
+    : '<p class="empty-hint">Aucune modification pour le moment.</p>';
+}
+function exportLedgerCsv(){
+  const cols = ['Date','Opération','Ticker','Valeur','Classe','Quantité','Prix','Frais','Montant','Note'];
+  const q = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const lines = [cols.map(q).join(';')].concat(ledgerSorted().map(o=>[fmtDMY(o.op_date), OP_LABEL[o.op_type], o.ticker||'', o.name||'', o.ticker?o.cls:'', o.ticker?o.qty:'', o.price, o.fees||0, o.amount, o.note||''].map(q).join(';')));
+  const blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'bourseclix-journal-'+todayStr()+'.csv';
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+document.getElementById('histExportCsv').addEventListener('click', exportLedgerCsv);
+document.getElementById('exportCsv').addEventListener('click', e=>{ e.preventDefault(); exportLedgerCsv(); });
+
+
+/* ----- actualisation des cours à chaque consultation ----- */
+let lastPriceLoad = 0, refreshing = false;
+async function bcRefreshMarket(sync){
+  if(refreshing) return; refreshing = true;
+  try{
+    if(sync){ try{ await fetch(SB_URL+'/functions/v1/bc-sync-prices', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{"days":10}'}); }catch(e){} }
+    await bcLoadPrices(); lastPriceLoad = Date.now();
+    bcRecompute(); refreshAll();
+  }catch(e){} finally { refreshing = false; }
+}
+function bcMaybeRefresh(){ if(Date.now() - lastPriceLoad > 120000) bcRefreshMarket(false); }
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible' && Date.now() - lastPriceLoad > 60000) bcRefreshMarket(true); });
+setInterval(()=>{ if(document.visibilityState === 'visible') bcRefreshMarket(true); }, 5*60*1000);
+
 /* ---------- INIT ---------- */
 function refreshAll(){
   renderPlanUI();
   renderGreeting(); renderMiniTicker();
   renderKPIs(); renderPerfChart(); renderDonut(); renderTopMovers(); renderWatchlistCard(); renderWatchFeed();
   renderPortfolio(); renderMarket(document.getElementById('marketSearch').value);
-  renderDividends(); renderAlerts(); renderNews(); renderReports(); renderSettings();
+  renderDividends(); renderAlerts(); renderNews(); renderReports(); renderSettings(); renderHistory();
 }
 refreshAll();
 document.getElementById('paywallLogoutBtn').addEventListener('click', bcLogout);
@@ -1386,6 +2004,15 @@ document.getElementById('paywallLogoutBtn').addEventListener('click', bcLogout);
   window.BC_ACCESS = r.data; saveLS('bc_access_cache', r.data);
   refreshAll();
   await bcPullState();
+  /* Historique de cours + journal des opérations : recalculés à chaque ouverture */
+  try{
+    await bcLoadPrices(); lastPriceLoad = Date.now();
+    await bcLoadLedger();
+    if(ops.length && LATEST && PRICES['BRVMC'] && ledgerSorted()[0].op_date < PRICES['BRVMC'][0][0]) await bcLoadPrices();
+    bcRecompute();
+  }catch(e){ console.warn('BourseClix: historique indisponible', e); }
+  refreshAll();
+  bcRefreshMarket(true);   /* synchronise les derniers cours de séance puis actualise tous les modules */
 })();
 })();
 </script>
