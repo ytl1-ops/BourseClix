@@ -200,7 +200,7 @@ img{max-width:100%}
         </div>
         <div class="field">
           <label for="email">Adresse e-mail</label>
-          <input id="email" type="email" autocomplete="email" placeholder="toi@exemple.com" value="yorot225@gmail.com">
+          <input id="email" type="email" autocomplete="email" placeholder="toi@exemple.com">
         </div>
         <div class="field">
           <label for="password">Mot de passe</label>
@@ -222,7 +222,7 @@ img{max-width:100%}
       </form>
 
       <p class="switch-line" id="switchLine">Nouveau sur BourseClix ? <button type="button" id="switchBtn">Créer un compte</button></p>
-      <p class="legal">Démo produit — la connexion n'authentifie pas encore de compte réel.</p>
+      <p class="legal">Connexion sécurisée — tes données restent privées et liées à ton compte.</p>
     </div>
   </div>
 
@@ -264,6 +264,7 @@ img{max-width:100%}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
 "use strict";
@@ -315,70 +316,84 @@ document.getElementById('pwToggle').addEventListener('click', ()=>{
   pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
 });
 
-/* ---- validation + mock submit ---- */
-const DASHBOARD_URL = "app.html";
-const ADMIN_EMAIL = 'yorot225@gmail.com';
+/* ---- authentification réelle (Supabase Auth) ---- */
+const DASHBOARD_URL = 'app.html';
+const BASE_URL = location.href.replace(/[#?].*$/,'').replace(/[^\/]*$/,'');
+const SB = supabase.createClient('https://rguzdyaaqmtvyqdxnaoo.supabase.co','sb_publishable_vV_EjKhVRYPqX6NN9jdjvg_TzxVJYNE');
+let recovery = /type=recovery/.test(location.hash);
 function isEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 function showMsg(text, type){
-  document.getElementById('formMsg').innerHTML = `<div class="form-msg ${type}">${text}</div>`;
+  const box = document.getElementById('formMsg'); box.innerHTML = '';
+  const d = document.createElement('div'); d.className = 'form-msg ' + type; d.textContent = text; box.appendChild(d);
 }
-/* Ouvre un point d'inscription admin : tout compte créé/connecté avec l'adresse
-   ADMIN_EMAIL obtient un accès illimité (sans essai, sans publicité) côté tableau de bord. */
-function persistSession(rawEmail){
-  try{
-    const email = (rawEmail||'').trim().toLowerCase() || 'invite@bourseclix.demo';
-    const isAdmin = email === ADMIN_EMAIL;
-    localStorage.setItem('bc_user_email', JSON.stringify(email));
-    localStorage.setItem('bc_is_admin', JSON.stringify(isAdmin));
-    if(!localStorage.getItem('bc_trial_start')){
-      localStorage.setItem('bc_trial_start', JSON.stringify(Date.now()));
-    }
-    return isAdmin;
-  }catch(e){ return false; }
+function frError(err){
+  const m = ((err && err.message) || '').toLowerCase();
+  if(m.includes('invalid login')) return 'E-mail ou mot de passe incorrect.';
+  if(m.includes('not confirmed')) return 'Confirme d\u2019abord ton e-mail via le lien re\u00e7u.';
+  if(m.includes('already registered')) return 'Un compte existe d\u00e9j\u00e0 avec cet e-mail : connecte-toi.';
+  if(m.includes('rate limit') || m.includes('too many') || m.includes('security purposes')) return 'Trop de tentatives, r\u00e9essaie dans quelques minutes.';
+  if(m.includes('password')) return 'Mot de passe refus\u00e9 : ' + err.message;
+  return (err && err.message) || 'Une erreur est survenue.';
 }
-/* bourseclix-auth.html et bourseclix-app.html sont deux artefacts publiés séparément :
-   chacun a sa propre origine, donc le localStorage écrit ici n'est pas visible là-bas.
-   On fait donc voyager l'identifiant (et le statut admin) via les paramètres d'URL de la
-   redirection ; l'appli les lit au chargement et les écrit dans SON propre localStorage.
-   La redirection automatique (window.location) peut être bloquée par le bac à sable dans
-   lequel s'affiche cette page : on affiche donc toujours aussi un lien "Ouvrir mon tableau
-   de bord" cliquable manuellement (ouverture dans un nouvel onglet), qui fonctionne dans
-   tous les cas puisque c'est un vrai geste utilisateur sur un vrai lien. */
-const continueLink = document.getElementById('continueLink');
-function goToDashboard(btn, email, isAdmin){
-  const params = new URLSearchParams();
-  if(email) params.set('bc_email', email);
-  if(isAdmin) params.set('bc_admin', '1');
-  const sep = DASHBOARD_URL.includes('?') ? '&' : '?';
-  const target = params.toString() ? DASHBOARD_URL + sep + params.toString() : DASHBOARD_URL;
-  continueLink.href = target;
-  continueLink.hidden = false;
-  if(btn){ btn.disabled = false; }
-  try{ window.open(target, '_blank', 'noopener'); }catch(e){}
+function goDashboard(){ window.location.replace(DASHBOARD_URL); }
+function setBusy(b){ const s = document.getElementById('submitBtn'); if(s) s.disabled = b; }
+function enterRecovery(){
+  recovery = true;
+  document.getElementById('nameField').hidden = true;
+  document.getElementById('email').closest('.field').hidden = true;
+  document.getElementById('googleBtn').hidden = true;
+  formTitle.textContent = 'Nouveau mot de passe';
+  submitLabel.textContent = 'Enregistrer';
+  showMsg('Saisis ton nouveau mot de passe puis valide.', 'ok');
 }
-document.getElementById('authForm').addEventListener('submit', e=>{
+SB.auth.onAuthStateChange(function(ev){ if(ev === 'PASSWORD_RECOVERY') enterRecovery(); });
+if(recovery) enterRecovery();
+SB.auth.getSession().then(function(r){ if(r && r.data && r.data.session && !recovery) goDashboard(); });
+
+document.getElementById('authForm').addEventListener('submit', async function(e){
   e.preventDefault();
-  const email = document.getElementById('email').value.trim();
+  const email = document.getElementById('email').value.trim().toLowerCase();
   const pw = document.getElementById('password').value;
   const name = document.getElementById('fullname').value.trim();
-  if(mode==='signup' && !name){ showMsg('Indique ton nom complet.', 'err'); return; }
+  if(recovery){
+    if(pw.length < 6){ showMsg('Le mot de passe doit contenir au moins 6 caract\u00e8res.', 'err'); return; }
+    setBusy(true);
+    const u = await SB.auth.updateUser({password: pw});
+    setBusy(false);
+    if(u.error){ showMsg(frError(u.error), 'err'); return; }
+    showMsg('Mot de passe mis \u00e0 jour. Ouverture du tableau de bord\u2026', 'ok');
+    setTimeout(goDashboard, 800); return;
+  }
+  if(mode === 'signup' && !name){ showMsg('Indique ton nom complet.', 'err'); return; }
   if(!isEmail(email)){ showMsg('Adresse e-mail invalide.', 'err'); return; }
-  if(pw.length < 6){ showMsg('Le mot de passe doit contenir au moins 6 caractères.', 'err'); return; }
-  if(mode==='signup' && !document.getElementById('terms').checked){ showMsg('Merci d’accepter la politique de confidentialité pour continuer.', 'err'); return; }
-  const isAdmin = persistSession(email);
-  showMsg(isAdmin
-    ? 'Compte administrateur reconnu — accès illimité, sans publicité.'
-    : (mode==='signup' ? 'Compte créé — essai gratuit de 5 jours activé.' : 'Connexion réussie.'), 'ok');
-  goToDashboard(document.getElementById('submitBtn'), email, isAdmin);
+  if(pw.length < 6){ showMsg('Le mot de passe doit contenir au moins 6 caract\u00e8res.', 'err'); return; }
+  if(mode === 'signup' && !document.getElementById('terms').checked){ showMsg('Merci d\u2019accepter la politique de confidentialit\u00e9 pour continuer.', 'err'); return; }
+  setBusy(true);
+  try{
+    if(mode === 'signup'){
+      const r = await SB.auth.signUp({email: email, password: pw, options: {data: {display_name: name}, emailRedirectTo: BASE_URL + 'connexion.html'}});
+      if(r.error){ showMsg(frError(r.error), 'err'); return; }
+      if(r.data && r.data.user && r.data.user.identities && r.data.user.identities.length === 0){ showMsg('Un compte existe d\u00e9j\u00e0 avec cet e-mail : connecte-toi.', 'err'); return; }
+      if(r.data && r.data.session){ showMsg('Compte cr\u00e9\u00e9 \u2014 essai gratuit de 5 jours activ\u00e9.', 'ok'); setTimeout(goDashboard, 600); }
+      else { showMsg('Compte cr\u00e9\u00e9. Un e-mail de confirmation vient d\u2019\u00eatre envoy\u00e9 : clique sur le lien, puis connecte-toi.', 'ok'); }
+    } else {
+      const r = await SB.auth.signInWithPassword({email: email, password: pw});
+      if(r.error){ showMsg(frError(r.error), 'err'); return; }
+      showMsg('Connexion r\u00e9ussie.', 'ok'); goDashboard();
+    }
+  } finally { setBusy(false); }
 });
-document.getElementById('googleBtn').addEventListener('click', ()=>{
-  persistSession('');
-  showMsg('Connexion via Google (démo) — essai gratuit de 5 jours activé.', 'ok');
-  goToDashboard(document.getElementById('googleBtn'), '', false);
+document.getElementById('googleBtn').addEventListener('click', async function(){
+  const r = await SB.auth.signInWithOAuth({provider: 'google', options: {redirectTo: BASE_URL + 'connexion.html'}});
+  if(r.error) showMsg('La connexion Google n\u2019est pas encore activ\u00e9e : utilise ton e-mail et ton mot de passe.', 'err');
 });
-document.getElementById('forgotLink').addEventListener('click', e=>{
+document.getElementById('forgotLink').addEventListener('click', async function(e){
   e.preventDefault();
-  showMsg("La réinitialisation du mot de passe sera disponible avec la version connectée.", 'ok');
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  if(!isEmail(email)){ showMsg('Saisis ton adresse e-mail, puis clique \u00e0 nouveau sur \u00ab Mot de passe oubli\u00e9 \u00bb.', 'err'); return; }
+  const r = await SB.auth.resetPasswordForEmail(email, {redirectTo: BASE_URL + 'connexion.html'});
+  if(r.error){ showMsg(frError(r.error), 'err'); return; }
+  showMsg('Si un compte existe pour cette adresse, un lien de r\u00e9initialisation vient d\u2019\u00eatre envoy\u00e9.', 'ok');
 });
 })();
 </script>
